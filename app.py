@@ -16,6 +16,8 @@ def testResponse():
   if request.origin not in ALLOWED_ORIGINS:
     abort(403, "Requests not allowed from your domain")
 
-  response = make_response('Testing, testing, 1, 2, 3, ...')
+  response = make_response({
+    "message": "This is a test"
+  })
   response.headers['Access-Control-Allow-Origin'] = request.origin
   return response
