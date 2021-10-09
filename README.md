@@ -1,1 +1,6 @@
-# crud-app
+# `crud-app`
+
+
+Backend: 
+ - Python
+ - Flask
