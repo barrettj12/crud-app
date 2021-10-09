@@ -5,7 +5,7 @@ app = Flask(__name__)
 
 # Constants
 ALLOWED_ORIGINS = {
-  "https://barrettj12.github.io/",
+  "https://barrettj12.github.io",
   "http://127.0.0.1:5500"
 }
 
