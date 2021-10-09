@@ -9,6 +9,16 @@
 <body>
   <main>
     <h1>Hello there!</h1>
+
+    <button onclick="runTest()">Test API</button>
+
+    <script>
+      async function runTest() {
+        let response = await fetch('https://barrettj12-crud-app.herokuapp.com/test');
+
+        alert(response.json());
+      }
+    </script>
   </main>
 </body>
 </html>
