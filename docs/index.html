@@ -9,12 +9,24 @@
 <body>
   <main>
     <h1>Hello there!</h1>
-
     <button onclick="runTest()">Test API</button>
+
+    <h2>Make new table</h2>
+    <p>Table name:</p>
+    <input type="text" id="tablename">
+    <p>Table password (optional):</p>
+    <input type="password" id="tablepwd">
+    <button id="maketable">Create table</button>
 
     <script>
       const server = 'https://barrettj12-crud-app.herokuapp.com'
 
+      // Get page elements
+      nameInput = document.getElementById('tablename')
+      pwdInput = document.getElementById('tablepwd')
+
+
+      // API test
       async function runTest() {
         fetch(server + '/test')
           .then(resp => resp.json())
@@ -25,6 +37,22 @@
         fmessage = 'New message from server: "' + message + '"';
         alert(fmessage);
         console.log(fmessage);
+      }
+
+
+      // Make new table
+      async function makeTable() {
+        name = nameInput.value
+        pwd = pwdInput.value
+
+        fetch(server + '/maketable', {
+          method: 'POST',
+          body: JSON.stringify({
+            'name': name,
+            'pwd': pwd
+          })
+        })
+          .then(resp => console.log(resp))
       }
     </script>
   </main>
