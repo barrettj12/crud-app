@@ -27,20 +27,17 @@ def preReq():
     if request.origin not in ALLOWED_ORIGINS:
         abort(403, 'Requests not allowed from your domain')
 
-
 @app.after_request
 def postReq(response):
     # Add CORS headers
     response.headers['Access-Control-Allow-Origin'] = request.origin
+    return response
 
 
 # API test interface
 @app.route('/test')
 def testResponse():
-    response = make_response({
-        'message': 'This is a test'
-    })
-    return response
+    return 'This is a test'
 
 
 # Make new table
