@@ -25,7 +25,7 @@ app = Flask(__name__)
 def preReq():
     # Check requests are allowed from this origin
     if request.origin not in ALLOWED_ORIGINS:
-        abort(403, 'Requests not allowed from your domain')
+        abort(403, description = 'Requests not allowed from your domain')
 
 @app.after_request
 def postReq(response):
@@ -48,7 +48,7 @@ def makeTable():
     pwd = request.args.get('pwd')
 
     if name is None:
-        abort(400, 'Please provide a table name.')
+        abort(400, description = 'Please provide a table name.')
 
     # Connect to DB
     conn = psycopg2.connect(DATABASE_URL)
@@ -59,8 +59,8 @@ def makeTable():
     names = cur.fetchone()
 
     if names is not None:
-        abort(409, 'There is already a table called "' +
-              name + '". Please pick a different name.')
+        abort(409, description = 'There is already a table called "' +
+                                  name + '". Please pick a different name.')
 
     # Create the table
     if pwd is None:
@@ -92,4 +92,6 @@ def getTables():
     cur.close()
     conn.close()
 
+    # Returning an int? What the hell is this?
+    print('\nTABLES IS', tables, '\n')
     return tables

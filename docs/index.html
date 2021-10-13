@@ -36,15 +36,16 @@
       // API test
       async function runTest() {
         fetch(server + '/test')
-          .then(resp => resp.json())
-          .then(data => processMessage(data.message));
+          .then(resp => resp.text())
+          .then(msg => alert(msg))
+          .catch(err => handleError(err))
       }
 
-      function processMessage(message) {
-        fmessage = 'New message from server: "' + message + '"';
-        alert(fmessage);
-        console.log(fmessage);
-      }
+/*      function processMessage(message) {
+        fmessage = 'New message from server: "' + message + '"'
+        alert(fmessage)
+        console.log(fmessage)
+      }*/
 
 
       // Make new table
@@ -59,13 +60,29 @@
             'pwd': pwd
           })
         })
-          .then(resp => console.log(resp))
+          .then(resp => resp.text())
+          .then(msg => alert(msg))
+          .catch(err => handleError(err))
       }
 
       // Get tables
       async function getTables() {
         fetch(server + '/tables')
-          .then(resp => console.log(resp))
+          .then(resp => {
+            if (resp.ok) {
+              showTables(resp.json())
+            }
+            else {
+              resp.text().then(msg => alert(msg))
+            }
+          })
+          .catch(err => handleError(err))
+      }
+
+      // Error handling for fetch
+      function handleError(err) {
+        alert('Whoops, an error occurred.')
+        console.log(err)
       }
     </script>
   </main>
