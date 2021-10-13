@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <title>CRUD App</title>
+  <meta name="description" content="Create, read, update, delete data tables.">
+  <meta name="author" content="Jordan Mitchell Barrett">
+
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,7 +20,10 @@
     <input type="text" id="tablename">
     <p>Table password (optional):</p>
     <input type="password" id="tablepwd">
-    <button id="maketable">Create table</button>
+    <button onclick="makeTable()" id="maketable">Create table</button>
+
+    <h2>Existing tables</h2>
+    <button onclick="getTables()" id="getTables">Get tables</button>
 
     <script>
       const server = 'https://barrettj12-crud-app.herokuapp.com'
@@ -52,6 +59,12 @@
             'pwd': pwd
           })
         })
+          .then(resp => console.log(resp))
+      }
+
+      // Get tables
+      async function getTables() {
+        fetch(server + '/tables')
           .then(resp => console.log(resp))
       }
     </script>
