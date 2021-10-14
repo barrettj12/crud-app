@@ -41,7 +41,7 @@
     </div>
 
     <script>
-      const server = 'https://barrettj12-crud-app.herokuapp.com'
+      const server = 'https://barrettj12-crud-app.herokuapp.com' // 'http://127.0.0.1:5000'
 
       // Get page elements
       nameInput = document.getElementById('tablename')
@@ -66,15 +66,13 @@
 
       // Make new table
       async function makeTable() {
-        name = nameInput.value
-        pwd = pwdInput.value
+        const formData = new FormData()
+        formData.append('name', nameInput.value)
+        formData.append('pwd', pwdInput.value)
 
         fetch(server + '/maketable', {
           method: 'POST',
-          body: JSON.stringify({
-            'name': name,
-            'pwd': pwd
-          })
+          body: formData
         })
           .then(resp => resp.text())
           .then(msg => alert(msg))
@@ -116,6 +114,8 @@
         return table;
       }
 
+      //
+
       // Error handling for fetch
       function handleError(err) {
         alert('Whoops, an error occurred.')
@@ -131,7 +131,7 @@
               resp.json()
 //                .then(data => console.log(data))
                 .then(data => formatTable(data))
-                .then(elmt => tableDisplay.replaceWith(elmt))
+                .then(elmt => tableDisplay.replaceChildren(elmt))
             }
             else {
               resp.text().then(msg => alert(msg))

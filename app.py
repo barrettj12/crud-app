@@ -1,6 +1,7 @@
 # Imports
 import os
 import psycopg2
+from psycopg2.sql import SQL, Identifier
 from flask import Flask, request, abort
 #from flask.helpers import make_response
 from flask.json import jsonify
@@ -48,8 +49,11 @@ def makeTable():
     # Get provided parameters (in POST body)
     name = request.form.get('name')
     pwd = request.form.get('pwd')
+    print('name is "' + name + '" : ' + str(type(name)))
+    print('pwd is "' + pwd + '"')
 
-    if name is None:
+#    if name is None or name == "":
+    if not name:
         abort(400, description = 'Please provide a table name.')
 
     # Connect to DB
@@ -57,28 +61,31 @@ def makeTable():
     cur = conn.cursor()
 
     # Check table doesn't already exist
-    cur.execute('SELECT name FROM tables WHERE name = %s', name)
+    cur.execute('SELECT name FROM tables WHERE name = %s', (name,))
     names = cur.fetchone()
 
-    if names is not None:
+    if names:
         abort(409, description = 'There is already a table called "' +
                                   name + '". Please pick a different name.')
 
     # Create the table
-    cur.execute('CREATE TABLE %s (id INT GENERATED ALWAYS AS IDENTITY);', name)
+    cur.execute(
+        SQL('CREATE TABLE {} (id INT GENERATED ALWAYS AS IDENTITY);').format(Identifier(name))
+    )
 
     # Enter table in master list 'tables'
-    if pwd is None:
-        cur.execute('INSERT INTO tables (name) VALUES (%s)', name)
+    if pwd:
+        cur.execute('INSERT INTO tables (name, pwd) VALUES (%s, %s)', (name, pwd))
     else:
-        cur.execute('INSERT INTO tables (name, pwd) VALUES (%s, %s)', name, pwd)
+        cur.execute('INSERT INTO tables (name) VALUES (%s)', (name,))
+        
 
     # Commit and disconnect from DB
     conn.commit()
     cur.close()
     conn.close()
 
-    return 'Table "' + name + '"successfully created.'
+    return 'Table "' + name + '" successfully created.'
 
 
 
