@@ -45,9 +45,9 @@ def testResponse():
 # Make new table
 @app.route('/maketable', methods=['POST'])
 def makeTable():
-    # Get provided parameters
-    name = request.args.get('name')
-    pwd = request.args.get('pwd')
+    # Get provided parameters (in POST body)
+    name = request.form.get('name')
+    pwd = request.form.get('pwd')
 
     if name is None:
         abort(400, description = 'Please provide a table name.')
@@ -65,6 +65,9 @@ def makeTable():
                                   name + '". Please pick a different name.')
 
     # Create the table
+    cur.execute('CREATE TABLE %s (id INT GENERATED ALWAYS AS IDENTITY);', name)
+
+    # Enter table in master list 'tables'
     if pwd is None:
         cur.execute('INSERT INTO tables (name) VALUES (%s)', name)
     else:
@@ -78,8 +81,48 @@ def makeTable():
     return 'Table "' + name + '"successfully created.'
 
 
+
+# ADMIN METHODS
+# These are ONLY for testing and should be commented out in production
+
+# Reset all data in database
+@app.route('/reset')
+def reset():
+    # Connect to DB
+    conn = psycopg2.connect(DATABASE_URL)
+    cur = conn.cursor()
+
+    # Delete all existing data
+    #
+    cur.execute(
+     """DROP SCHEMA public CASCADE;
+        CREATE SCHEMA public;
+        GRANT ALL ON SCHEMA public TO postgres;
+        GRANT ALL ON SCHEMA public TO public;
+        COMMENT ON SCHEMA public IS 'standard public schema';"""
+    )
+
+    # Create the master list 'tables'
+    cur.execute(
+     """CREATE TABLE tables (
+            id INT GENERATED ALWAYS AS IDENTITY,
+            name TEXT NOT NULL,
+            pwd TEXT
+        );"""
+    )
+
+    # Enter table in master list 'tables'
+    cur.execute("INSERT INTO tables (name) VALUES ('tables');")
+
+    # Commit and disconnect from DB
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return 'Reset successful.'
+
+
 # Get list of tables
-# NB: this method is ONLY for testing and should be commented out in production
 @app.route('/tables')
 def getTables():
     # Connect to DB
