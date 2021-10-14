@@ -12,41 +12,33 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Document</title>
 </head>
-<body>
+<body onload="getTables()">
   <main>
     <h1>Hello there!</h1>
     <button onclick="runTest()">Test API</button>
 
-    <h2>Make new table</h2>
+    <h2>Make/view table</h2>
     <p>Table name:</p>
     <input type="text" id="tablename">
     <p>Table password (optional):</p>
     <input type="password" id="tablepwd">
     <button onclick="makeTable()" id="maketable">Create table</button>
+    <button onclick="viewTable()" id="viewtable">View table</button>
+    <button onclick="deleteTable()" id="deletetable">Delete table</button>
+    <div id="tableDisplay"></div>
 
     <h2>Existing tables</h2>
-    <button onclick="getTables()" id="getTables">Get tables</button>
-    <div id="tableDisplay">
-      <table>
-        <tr>
-          <th>Headers</th>
-          <th>Go</th>
-          <th>here</th>
-        </tr>
-        <tr>
-          <td>data1</td>
-          <td>data2</td>
-        </tr>
-      </table>
-    </div>
+    <button onclick="getTables()">Update</button>
+    <div id="masterTable"></div>
 
     <script>
-      const server = 'https://barrettj12-crud-app.herokuapp.com' // 'http://127.0.0.1:5000'
+      const server = /*'https://barrettj12-crud-app.herokuapp.com'*/ 'http://127.0.0.1:5000'
 
       // Get page elements
       nameInput = document.getElementById('tablename')
       pwdInput = document.getElementById('tablepwd')
       tableDisplay = document.getElementById('tableDisplay')
+      masterTable = document.getElementById('masterTable')
 
 
       // API test
@@ -75,8 +67,44 @@
           body: formData
         })
           .then(resp => resp.text())
-          .then(msg => alert(msg))
+          .then(msg => { getTables(); alert(msg) })
           .catch(err => handleError(err))
+      }
+
+      // View table
+      async function viewTable() {
+        fetch(server + '/viewtable?name=' + nameInput.value, {
+          headers: {
+            'Authorization': pwdInput.value
+          }
+        })
+          .then(resp => {
+            if (resp.ok) {
+              resp.json()
+//                .then(data => console.log(data))
+                .then(data => formatTable(data))
+                .then(elmt => tableDisplay.replaceChildren(elmt))
+            }
+            else {
+              resp.text().then(msg => alert(msg))
+            }
+          })
+          .catch(err => handleError(err))
+      }
+
+      // Delete table
+      async function deleteTable() {
+        fetch(server + '/deletetable?name=' + nameInput.value, {
+          headers: {
+            'Authorization': pwdInput.value
+          }
+        })
+          .then(resp => resp.text())
+          .then(msg => { getTables(); alert(msg) })
+          .catch(err => handleError(err))
+        
+        // Update master table
+        getTables()
       }
 
 
@@ -131,7 +159,7 @@
               resp.json()
 //                .then(data => console.log(data))
                 .then(data => formatTable(data))
-                .then(elmt => tableDisplay.replaceChildren(elmt))
+                .then(elmt => masterTable.replaceChildren(elmt))
             }
             else {
               resp.text().then(msg => alert(msg))

@@ -37,6 +37,11 @@ def postReq(response):
     return response
 
 
+# Landing page
+@app.route('/')
+def landingPage():
+    return "This is the backend API for crud-app. See https://github.com/barrettj12/crud-app"
+
 # API test interface
 @app.route('/test')
 def testResponse():
@@ -52,7 +57,6 @@ def makeTable():
     print('name is "' + name + '" : ' + str(type(name)))
     print('pwd is "' + pwd + '"')
 
-#    if name is None or name == "":
     if not name:
         abort(400, description = 'Please provide a table name.')
 
@@ -86,6 +90,107 @@ def makeTable():
     conn.close()
 
     return 'Table "' + name + '" successfully created.'
+
+
+# View existing table (must provide password)
+@app.route('/viewtable')
+def viewTable():
+    name = request.args.get('name')     # sent in query string
+    pwd = request.headers.get('Authorization')      # sent as auth header
+
+    if not name:
+        abort(400, description = 'Please provide a table name.')
+    elif name == 'tables':
+        abort(403, description = 'Not allowed to view table "tables".')
+
+    # Connect to DB
+    conn = psycopg2.connect(DATABASE_URL)
+    cur = conn.cursor()
+
+    # Check table exists
+    cur.execute('SELECT name FROM tables WHERE name = %s', (name,))
+    names = cur.fetchone()
+
+    if not names:
+        abort(404, description = 'There is no table called "' + name + '".')
+
+    # Check password
+    cur.execute('SELECT pwd FROM tables WHERE name = %s', (name,))
+    storedPwd = cur.fetchone()[0]
+
+    if storedPwd and pwd != storedPwd:
+        abort(403, description = 'Incorrect password for table "' + name + '".')
+
+    # Get table fields
+    cur.execute(
+     """SELECT column_name
+        FROM information_schema.columns
+        WHERE table_name = %s
+        AND table_schema = 'public';"""
+    )
+    cols = map(lambda x: x[0], cur.fetchall())  # flatten inner tuples
+
+    # Get table data
+    cur.execute('SELECT * FROM tables')
+    tableData = cur.fetchall()     # Returns list of tuples
+
+    # Commit and disconnect from DB
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    # Encode 'tables' data as JSON
+    return jsonify(
+        name = name,
+        fields = cols,
+        data = tableData
+    )
+
+
+# Delete existing table (must provide password)
+@app.route('/deletetable')
+def deleteTable():
+    name = request.args.get('name')     # sent in query string
+    pwd = request.headers.get('Authorization')      # sent as auth header
+
+    if not name:
+        abort(400, description = 'Please provide a table name.')
+    elif name == 'tables':
+        abort(403, description = 'Not allowed to delete table "tables".')
+
+    # Connect to DB
+    conn = psycopg2.connect(DATABASE_URL)
+    cur = conn.cursor()
+
+    # Check table exists
+    cur.execute('SELECT name FROM tables WHERE name = %s', (name,))
+    names = cur.fetchone()
+
+    if not names:
+        abort(404, description = 'There is no table called "' + name + '".')
+
+    # Check password
+    cur.execute('SELECT pwd FROM tables WHERE name = %s', (name,))
+    storedPwd = cur.fetchone()[0]
+
+    if storedPwd and pwd != storedPwd:
+        abort(403, description = 'Incorrect password for table "' + name + '".')
+
+    # Drop table
+    cur.execute(
+        SQL('DROP TABLE {};').format(Identifier(name))
+    )
+
+    # Delete entry from master list
+    cur.execute('DELETE FROM tables WHERE name = %s;', (name,))
+
+    # Commit and disconnect from DB
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return 'Table "' + name + '" successfully deleted.'
+
 
 
 
