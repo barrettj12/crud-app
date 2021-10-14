@@ -34,6 +34,7 @@ def preReq():
 def postReq(response):
     # Add CORS headers
     response.headers['Access-Control-Allow-Origin'] = request.origin
+    response.headers['Access-Control-Allow-Headers'] = 'Authorization'
     return response
 
 
