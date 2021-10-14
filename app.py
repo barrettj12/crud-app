@@ -2,14 +2,16 @@
 import os
 import psycopg2
 from flask import Flask, request, abort
-from flask.helpers import make_response
+#from flask.helpers import make_response
+from flask.json import jsonify
 #from flask_sqlalchemy import SQLAlchemy
 #from sqlalchemy import create_engine
 
 # Constants
 ALLOWED_ORIGINS = {
     'https://barrettj12.github.io',
-    'http://127.0.0.1:5500'
+    'http://127.0.0.1:5500',
+    None            # probably should remove this later
 }
 DATABASE_URL = os.environ['DATABASE_URL']
 
@@ -25,7 +27,7 @@ app = Flask(__name__)
 def preReq():
     # Check requests are allowed from this origin
     if request.origin not in ALLOWED_ORIGINS:
-        abort(403, description = 'Requests not allowed from your domain')
+        abort(403, description = 'Requests not allowed from your domain: ' + str(request.origin))
 
 @app.after_request
 def postReq(response):
@@ -93,5 +95,8 @@ def getTables():
     conn.close()
 
     # Encode 'tables' data as JSON
-    ####  FINISH THIS
-    return tables
+    return jsonify(
+        name = 'tables',
+        fields = ["id", "name", "pwd"],
+        data = tables
+    )
