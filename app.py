@@ -85,13 +85,13 @@ def getTables():
     cur = conn.cursor()
 
     cur.execute('SELECT * FROM tables')
-    tables = cur.fetchone()
+    tables = cur.fetchall()     # Returns list of tuples
 
     # Commit and disconnect from DB
     conn.commit()
     cur.close()
     conn.close()
 
-    # Returning an int? What the hell is this?
-    print('\nTABLES IS', tables, '\n')
+    # Encode 'tables' data as JSON
+    ####  FINISH THIS
     return tables
