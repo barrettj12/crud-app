@@ -5,6 +5,8 @@
   <meta name="description" content="Create, read, update, delete data tables.">
   <meta name="author" content="Jordan Mitchell Barrett">
 
+  <link rel="stylesheet" href="style.css">
+
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -24,6 +26,19 @@
 
     <h2>Existing tables</h2>
     <button onclick="getTables()" id="getTables">Get tables</button>
+    <div id="tableDisplay">
+      <table>
+        <tr>
+          <th>Headers</th>
+          <th>Go</th>
+          <th>here</th>
+        </tr>
+        <tr>
+          <td>data1</td>
+          <td>data2</td>
+        </tr>
+      </table>
+    </div>
 
     <script>
       const server = 'https://barrettj12-crud-app.herokuapp.com'
@@ -31,6 +46,7 @@
       // Get page elements
       nameInput = document.getElementById('tablename')
       pwdInput = document.getElementById('tablepwd')
+      tableDisplay = document.getElementById('tableDisplay')
 
 
       // API test
@@ -65,24 +81,63 @@
           .catch(err => handleError(err))
       }
 
-      // Get tables
-      async function getTables() {
-        fetch(server + '/tables')
-          .then(resp => {
-            if (resp.ok) {
-              showTables(resp.json())
-            }
-            else {
-              resp.text().then(msg => alert(msg))
-            }
-          })
-          .catch(err => handleError(err))
+
+      // Format received JSON table as HTML table
+      // Returns an HTMLTableElement
+      function formatTable(tableData) {
+        const table = document.createElement('table')
+
+        // Make headers
+        headerRow = document.createElement('tr')
+
+        for (hdText of tableData.fields) {
+          colHeader = document.createElement('th')
+          hdNode = document.createTextNode(hdText)
+          colHeader.appendChild(hdNode)
+          headerRow.appendChild(colHeader)
+        }
+
+        table.appendChild(headerRow)
+
+        // Make rows
+        for (rowData of tableData.data) {
+          nextRow = document.createElement('tr')
+
+          for (txt of rowData) {
+            cell = document.createElement('td')
+            txtNode = document.createTextNode(txt == null ?'' : txt)
+            cell.appendChild(txtNode)
+            nextRow.appendChild(cell)
+          }
+
+          table.appendChild(nextRow)
+        }
+
+        return table;
       }
 
       // Error handling for fetch
       function handleError(err) {
         alert('Whoops, an error occurred.')
         console.log(err)
+      }
+
+
+      // Get tables
+      async function getTables() {
+        fetch(server + '/tables')
+          .then(resp => {
+            if (resp.ok) {
+              resp.json()
+//                .then(data => console.log(data))
+                .then(data => formatTable(data))
+                .then(elmt => tableDisplay.replaceWith(elmt))
+            }
+            else {
+              resp.text().then(msg => alert(msg))
+            }
+          })
+          .catch(err => handleError(err))
       }
     </script>
   </main>
