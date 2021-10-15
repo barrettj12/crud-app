@@ -6,6 +6,7 @@
   <meta name="author" content="Jordan Mitchell Barrett">
 
   <link rel="stylesheet" href="style.css">
+  <script src="server.js"></script>
 
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -29,11 +30,10 @@
 
     <h2>Existing tables</h2>
     <button onclick="getTables()">Update</button>
+    <button onclick="reset()">Delete all data</button>
     <div id="masterTable"></div>
 
     <script>
-      const server = /*'https://barrettj12-crud-app.herokuapp.com'*/ 'http://127.0.0.1:5000'
-
       // Get page elements
       nameInput = document.getElementById('tablename')
       pwdInput = document.getElementById('tablepwd')
@@ -43,7 +43,7 @@
 
       // API test
       async function runTest() {
-        fetch(server + '/test')
+        fetch(SERVER + '/test')
           .then(resp => resp.text())
           .then(msg => alert(msg))
           .catch(err => handleError(err))
@@ -62,7 +62,7 @@
         formData.append('name', nameInput.value)
         formData.append('pwd', pwdInput.value)
 
-        fetch(server + '/maketable', {
+        fetch(SERVER + '/maketable', {
           method: 'POST',
           body: formData
         })
@@ -73,7 +73,7 @@
 
       // View table
       async function viewTable() {
-        fetch(server + '/viewtable?name=' + nameInput.value, {
+        fetch(SERVER + '/viewtable?name=' + nameInput.value, {
           headers: {
             'Authorization': pwdInput.value
           }
@@ -94,7 +94,7 @@
 
       // Delete table
       async function deleteTable() {
-        fetch(server + '/deletetable?name=' + nameInput.value, {
+        fetch(SERVER + '/deletetable?name=' + nameInput.value, {
           headers: {
             'Authorization': pwdInput.value
           }
@@ -102,9 +102,6 @@
           .then(resp => resp.text())
           .then(msg => { getTables(); alert(msg) })
           .catch(err => handleError(err))
-        
-        // Update master table
-        getTables()
       }
 
 
@@ -153,8 +150,9 @@
 
       // Get tables
       async function getTables() {
-        fetch(server + '/tables')
+        fetch(SERVER + '/tables')
           .then(resp => {
+            console.log(resp)
             if (resp.ok) {
               resp.json()
 //                .then(data => console.log(data))
@@ -166,6 +164,16 @@
             }
           })
           .catch(err => handleError(err))
+      }
+
+      // Reset ALL data
+      async function reset() {
+        if (window.confirm('Are you sure you want to delete all data?')) {
+          fetch(SERVER + '/reset')
+            .then(resp => resp.text())
+            .then(msg => { getTables(); alert(msg) })
+            .catch(err => handleError(err))
+        }
       }
     </script>
   </main>
