@@ -155,6 +155,49 @@ def viewTable():
     )
 
 
+# Add (empty) row to existing table
+@app.route('/addrow', methods=['POST'])
+def addRow():
+    tablename = request.args.get('name')     # sent in query string
+    pwd = request.headers.get('Authorization')      # sent as auth header
+
+    # Check request is proper
+    if not tablename:
+        abort(400, description = 'Please provide a table name.')
+    elif tablename == 'tables':
+        abort(403, description = 'Not allowed to modify table "tables".')
+
+    # Connect to DB
+    conn = psycopg2.connect(DATABASE_URL)
+    cur = conn.cursor()
+
+    # Check table exists
+    cur.execute('SELECT name FROM tables WHERE name = %s;', (tablename,))
+    names = cur.fetchone()
+
+    if not names:
+        abort(404, description = 'There is no table called "' + tablename + '".')
+
+    # Check password
+    cur.execute('SELECT pwd FROM tables WHERE name = %s;', (tablename,))
+    storedPwd = cur.fetchone()[0]
+
+    if storedPwd and pwd != storedPwd:
+        abort(403, description = 'Incorrect password for table "' + tablename + '".')
+
+    # Add new column to table
+    cur.execute(
+        SQL('INSERT INTO {} DEFAULT VALUES;').format(Identifier(tablename))
+    )        
+
+    # Commit and disconnect from DB
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return 'Successfully added row to table "' + tablename + '".'
+
+
 # Add column to existing table
 @app.route('/addcol', methods=['POST'])
 def addCol():

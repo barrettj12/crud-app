@@ -27,6 +27,7 @@
     <button onclick="viewTable()" id="viewtable">View table</button>
     <button onclick="deleteTable()" id="deletetable">Delete table</button>
     <div id="tableDisplay"></div>
+    <button onclick="addRow()">Add new row</button>
 
     <h2>Add column</h2>
     <p>Column name:</p>
@@ -117,6 +118,22 @@
           .catch(err => handleError(err))
       }
 
+      // Add row to table
+      async function addRow() {
+        fetch(SERVER + '/addrow?name=' + nameInput.value, {
+          method: 'POST',
+          headers: {
+            'Authorization': pwdInput.value
+          }
+        })
+          .then(resp => resp.text())
+          .then(msg => {
+//            alert(msg)
+            viewTable()
+          })
+          .catch(err => handleError(err))
+      }
+
       // Add column to table
       async function addCol() {
         fetch(SERVER + '/addcol?name=' + nameInput.value
@@ -131,7 +148,6 @@
           .then(msg => {
             alert(msg)
             viewTable()
-            getTables() 
           })
           .catch(err => handleError(err))
       }
