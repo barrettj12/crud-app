@@ -66,7 +66,7 @@ def makeTable():
     cur = conn.cursor()
 
     # Check table doesn't already exist
-    cur.execute('SELECT name FROM tables WHERE name = %s', (name,))
+    cur.execute('SELECT name FROM tables WHERE name = %s;', (name,))
     names = cur.fetchone()
 
     if names:
@@ -80,9 +80,9 @@ def makeTable():
 
     # Enter table in master list 'tables'
     if pwd:
-        cur.execute('INSERT INTO tables (name, pwd) VALUES (%s, %s)', (name, pwd))
+        cur.execute('INSERT INTO tables (name, pwd) VALUES (%s, %s);', (name, pwd))
     else:
-        cur.execute('INSERT INTO tables (name) VALUES (%s)', (name,))
+        cur.execute('INSERT INTO tables (name) VALUES (%s);', (name,))
         
 
     # Commit and disconnect from DB
@@ -109,14 +109,14 @@ def viewTable():
     cur = conn.cursor()
 
     # Check table exists
-    cur.execute('SELECT name FROM tables WHERE name = %s', (name,))
+    cur.execute('SELECT name FROM tables WHERE name = %s;', (name,))
     names = cur.fetchone()
 
     if not names:
         abort(404, description = 'There is no table called "' + name + '".')
 
     # Check password
-    cur.execute('SELECT pwd FROM tables WHERE name = %s', (name,))
+    cur.execute('SELECT pwd FROM tables WHERE name = %s;', (name,))
     storedPwd = cur.fetchone()[0]
 
     if storedPwd and pwd != storedPwd:
@@ -127,12 +127,15 @@ def viewTable():
      """SELECT column_name
         FROM information_schema.columns
         WHERE table_name = %s
-        AND table_schema = 'public';"""
+        AND table_schema = 'public';""",
+        (name,)
     )
-    cols = map(lambda x: x[0], cur.fetchall())  # flatten inner tuples
+    cols = [x[0] for x in cur.fetchall()]  # flatten inner tuples
 
     # Get table data
-    cur.execute('SELECT * FROM tables')
+    cur.execute(
+        SQL('SELECT * FROM {};').format(Identifier(name))
+    )
     tableData = cur.fetchall()     # Returns list of tuples
 
     # Commit and disconnect from DB
@@ -164,14 +167,14 @@ def deleteTable():
     cur = conn.cursor()
 
     # Check table exists
-    cur.execute('SELECT name FROM tables WHERE name = %s', (name,))
+    cur.execute('SELECT name FROM tables WHERE name = %s;', (name,))
     names = cur.fetchone()
 
     if not names:
         abort(404, description = 'There is no table called "' + name + '".')
 
     # Check password
-    cur.execute('SELECT pwd FROM tables WHERE name = %s', (name,))
+    cur.execute('SELECT pwd FROM tables WHERE name = %s;', (name,))
     storedPwd = cur.fetchone()[0]
 
     if storedPwd and pwd != storedPwd:
@@ -242,7 +245,7 @@ def getTables():
     conn = psycopg2.connect(DATABASE_URL)
     cur = conn.cursor()
 
-    cur.execute('SELECT * FROM tables')
+    cur.execute('SELECT * FROM tables;')
     tables = cur.fetchall()     # Returns list of tuples
 
     # Commit and disconnect from DB
