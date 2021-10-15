@@ -34,6 +34,10 @@
     <div id="masterTable"></div>
 
     <script>
+      // Get server address
+      // Checks if LOCAL_SERVER is defined in server.js, otherwise default to external server
+      SERVER = LOCAL_SERVER ? LOCAL_SERVER : 'https://barrettj12-crud-app.herokuapp.com'
+
       // Get page elements
       nameInput = document.getElementById('tablename')
       pwdInput = document.getElementById('tablepwd')
