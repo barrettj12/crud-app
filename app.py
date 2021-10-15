@@ -15,6 +15,10 @@ ALLOWED_ORIGINS = {
     None            # probably should remove this later
 }
 DATABASE_URL = os.environ['DATABASE_URL']
+DATATYPES = {
+    'str': 'TEXT',
+    'int': 'INT'
+}
 
 
 # Initiate/configure app
@@ -149,6 +153,61 @@ def viewTable():
         fields = cols,
         data = tableData
     )
+
+
+# Add column to existing table
+@app.route('/addcol', methods=['POST'])
+def addCol():
+    tablename = request.args.get('name')     # sent in query string
+    colname = request.args.get('newcol')
+    datatype = request.args.get('datatype')
+    pwd = request.headers.get('Authorization')      # sent as auth header
+
+    # Check request is proper
+    if not tablename:
+        abort(400, description = 'Please provide a table name.')
+    elif tablename == 'tables':
+        abort(403, description = 'Not allowed to modify table "tables".')
+    elif not colname:
+        abort(400, description = 'Please provide a name for the new column in table "' + tablename + '".')
+    elif not datatype:
+        abort(400, description = 'Please provide the datatype for the new column "' + colname + '" in table "' + tablename + '". Possible options are: ' + (', '.join(f'"{k}"' for k in DATATYPES.keys)) + '.')
+
+    # Connect to DB
+    conn = psycopg2.connect(DATABASE_URL)
+    cur = conn.cursor()
+
+    # Check table exists
+    cur.execute('SELECT name FROM tables WHERE name = %s;', (tablename,))
+    names = cur.fetchone()
+
+    if not names:
+        abort(404, description = 'There is no table called "' + tablename + '".')
+
+    # Check password
+    cur.execute('SELECT pwd FROM tables WHERE name = %s;', (tablename,))
+    storedPwd = cur.fetchone()[0]
+
+    if storedPwd and pwd != storedPwd:
+        abort(403, description = 'Incorrect password for table "' + tablename + '".')
+
+    # Add new column to table
+    cur.execute(
+        SQL(
+            'ALTER TABLE {tn} ADD COLUMN {cn} {dt};'
+        ).format(
+            tn = Identifier(tablename),
+            cn = Identifier(colname),
+            dt = SQL(DATATYPES[datatype])
+        )
+    )        
+
+    # Commit and disconnect from DB
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return 'Successfully added column "' + colname + '" to table "' + tablename + '".'
 
 
 # Delete existing table (must provide password)

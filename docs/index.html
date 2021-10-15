@@ -28,6 +28,16 @@
     <button onclick="deleteTable()" id="deletetable">Delete table</button>
     <div id="tableDisplay"></div>
 
+    <h2>Add column</h2>
+    <p>Column name:</p>
+    <input type="text" id="colname">
+    <p>Datatype:</p>
+    <input type="radio" name="coldatatype" id="cdt-str" value="str">
+    <label for="cdt-str">String</label>
+    <input type="radio" name="coldatatype" id="cdt-int" value="int">
+    <label for="cdt-int">Integer</label>
+    <button onclick="addCol()">Add column</button>
+
     <h2>Existing tables</h2>
     <button onclick="getTables()">Update</button>
     <button onclick="reset()">Delete all data</button>
@@ -42,6 +52,7 @@
       nameInput = document.getElementById('tablename')
       pwdInput = document.getElementById('tablepwd')
       tableDisplay = document.getElementById('tableDisplay')
+      colnameInput = document.getElementById('colname')
       masterTable = document.getElementById('masterTable')
 
 
@@ -70,8 +81,18 @@
           method: 'POST',
           body: formData
         })
-          .then(resp => resp.text())
-          .then(msg => { getTables(); alert(msg) })
+          .then(resp => {
+            if (resp.ok) {
+              resp.text().then(msg => {
+                alert(msg)
+                viewTable()
+                getTables() 
+              })
+            }
+            else {
+              resp.text().then(msg => alert(msg))
+            }
+          })
           .catch(err => handleError(err))
       }
 
@@ -96,6 +117,25 @@
           .catch(err => handleError(err))
       }
 
+      // Add column to table
+      async function addCol() {
+        fetch(SERVER + '/addcol?name=' + nameInput.value
+            + '&newcol=' + colnameInput.value
+            + '&datatype=' + getColDataType(), {
+          method: 'POST',
+          headers: {
+            'Authorization': pwdInput.value
+          }
+        })
+          .then(resp => resp.text())
+          .then(msg => {
+            alert(msg)
+            viewTable()
+            getTables() 
+          })
+          .catch(err => handleError(err))
+      }
+
       // Delete table
       async function deleteTable() {
         fetch(SERVER + '/deletetable?name=' + nameInput.value, {
@@ -105,12 +145,16 @@
           }
         })
           .then(resp => resp.text())
-          .then(msg => { getTables(); alert(msg) })
+          .then(msg => {
+            alert(msg)
+            tableDisplay.replaceChildren()
+            getTables()
+          })
           .catch(err => handleError(err))
       }
 
 
-      // Format received JSON table as HTML table
+      // Format received JSON table as HTML table (non-editable)
       // Returns an HTMLTableElement
       function formatTable(tableData) {
         const table = document.createElement('table')
@@ -144,7 +188,12 @@
         return table;
       }
 
-      //
+      // Helper function to get column data type
+      function getColDataType() {
+        const chosen = document.querySelector('input[name="coldatatype"]:checked');
+        
+        return chosen ? chosen.value : 'none'
+      }
 
       // Error handling for fetch
       function handleError(err) {
@@ -178,7 +227,11 @@
             method: 'DELETE'
           })
             .then(resp => resp.text())
-            .then(msg => { getTables(); alert(msg) })
+            .then(msg => {
+              alert(msg)
+              tableDisplay.replaceChildren()
+              getTables()
+            })
             .catch(err => handleError(err))
         }
       }
