@@ -39,12 +39,12 @@ def postReq(response):
 
 
 # Landing page
-@app.route('/')
+@app.route('/', methods = ['GET'])
 def landingPage():
     return "This is the backend API for crud-app. See https://github.com/barrettj12/crud-app"
 
 # API test interface
-@app.route('/test')
+@app.route('/test', methods = ['GET'])
 def testResponse():
     return 'This is a test'
 
@@ -94,7 +94,7 @@ def makeTable():
 
 
 # View existing table (must provide password)
-@app.route('/viewtable')
+@app.route('/viewtable', methods = ['GET'])
 def viewTable():
     name = request.args.get('name')     # sent in query string
     pwd = request.headers.get('Authorization')      # sent as auth header
@@ -149,7 +149,7 @@ def viewTable():
 
 
 # Delete existing table (must provide password)
-@app.route('/deletetable')
+@app.route('/deletetable', methods = ['DELETE'])
 def deleteTable():
     name = request.args.get('name')     # sent in query string
     pwd = request.headers.get('Authorization')      # sent as auth header
@@ -199,7 +199,7 @@ def deleteTable():
 # These are ONLY for testing and should be commented out in production
 
 # Reset all data in database
-@app.route('/reset')
+@app.route('/reset', methods = ['DELETE'])
 def reset():
     # Connect to DB
     conn = psycopg2.connect(DATABASE_URL)
@@ -236,7 +236,7 @@ def reset():
 
 
 # Get list of tables
-@app.route('/tables')
+@app.route('/tables', methods = ['GET'])
 def getTables():
     # Connect to DB
     conn = psycopg2.connect(DATABASE_URL)
