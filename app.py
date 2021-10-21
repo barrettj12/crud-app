@@ -15,10 +15,10 @@ ALLOWED_ORIGINS = {
     None            # probably should remove this later
 }
 DATABASE_URL = os.environ['DATABASE_URL']
-DATATYPES = {
-    'str': 'TEXT',
-    'int': 'INT'
-}
+#DATATYPES = {
+#    'str': 'TEXT',
+#    'int': 'INT'
+#}
 
 
 # Initiate/configure app
@@ -39,6 +39,8 @@ def postReq(response):
     # Add CORS headers
     response.headers['Access-Control-Allow-Origin'] = request.origin
     response.headers['Access-Control-Allow-Headers'] = 'Authorization'
+    response.headers['Access-Control-Allow-Methods'] = '*'
+
     return response
 
 
@@ -196,7 +198,7 @@ def addRow():
 def addCol():
     tablename = request.args.get('name')     # sent in query string
     colname = request.args.get('newcol')
-    datatype = request.args.get('datatype')
+#    datatype = request.args.get('datatype')
     pwd = request.headers.get('Authorization')      # sent as auth header
 
     # Check request is proper
@@ -206,8 +208,8 @@ def addCol():
         abort(403, description = 'Not allowed to modify table "tables".')
     elif not colname:
         abort(400, description = 'Please provide a name for the new column in table "' + tablename + '".')
-    elif not datatype or datatype not in DATATYPES:
-        abort(400, description = 'Please provide a valid datatype for the new column "' + colname + '" in table "' + tablename + '". Possible options are: ' + (', '.join(f'"{k}"' for k in DATATYPES)) + '.')
+#    elif not datatype or datatype not in DATATYPES:
+#        abort(400, description = 'Please provide a valid datatype for the new column "' + colname + '" in table "' + tablename + '". Possible options are: ' + (', '.join(f'"{k}"' for k in DATATYPES)) + '.')
 
     # Connect to DB
     conn = psycopg2.connect(DATABASE_URL)
@@ -236,11 +238,11 @@ def addCol():
     # Add new column to table
     cur.execute(
         SQL(
-            'ALTER TABLE {tn} ADD COLUMN {cn} {dt};'
+            'ALTER TABLE {tn} ADD COLUMN {cn} TEXT;'#{dt};'
         ).format(
             tn = Identifier(tablename),
-            cn = Identifier(colname),
-            dt = SQL(DATATYPES[datatype])
+            cn = Identifier(colname)#,
+ #           dt = SQL(DATATYPES[datatype])
         )
     )        
 
@@ -250,6 +252,70 @@ def addCol():
     conn.close()
 
     return 'Successfully added column "' + colname + '" to table "' + tablename + '".'
+
+
+# Update cell value in table
+@app.route('/update', methods=['PUT'])
+def update():
+    tablename = request.args.get('name')     # sent in query string
+    rowid = request.args.get('row')
+    colname = request.args.get('col')
+    newval = request.args.get('value')
+    pwd = request.headers.get('Authorization')      # sent as auth header
+
+    # Check request is proper
+    if not tablename:
+        abort(400, description = 'Please provide a table name.')
+    elif tablename == 'tables':
+        abort(403, description = 'Not allowed to modify table "tables".')
+    elif not rowid:
+        abort(400, description = 'Please provide the id of the row you would like to update in table "' + tablename + '".')
+    elif not colname:
+        abort(400, description = 'Please provide the name of the column you would like to update in table "' + tablename + '".')
+
+    # Connect to DB
+    conn = psycopg2.connect(DATABASE_URL)
+    cur = conn.cursor()
+
+    # Check table exists
+    cur.execute('SELECT name FROM tables WHERE name = %s;', (tablename,))
+    names = cur.fetchone()
+
+    if not names:
+        abort(404, description = 'There is no table called "' + tablename + '".')
+
+    # Check password
+    cur.execute('SELECT pwd FROM tables WHERE name = %s;', (tablename,))
+    storedPwd = cur.fetchone()[0]
+
+    if storedPwd and pwd != storedPwd:
+        abort(403, description = 'Incorrect password for table "' + tablename + '".')
+
+    # Check column exists
+    cols = getCols(tablename, cur)
+
+    if colname not in cols:
+        abort(404, 'Column "' + colname + '" already exists in table "' + tablename + '".')
+
+    # Add new column to table
+    cur.execute(
+        SQL(
+         """UPDATE {tn}
+            SET {cn} = %s
+            WHERE id = %s;"""
+        ).format(
+            tn = Identifier(tablename),
+            cn = Identifier(colname)
+        ),
+        (newval if newval else '', rowid)
+    )
+
+    # Commit and disconnect from DB
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return 'Successfully updated row "' + rowid + '", column "' + colname + '" in table "' + tablename + '" with the value "' + newval + '".'
 
 
 # Delete existing table (must provide password)

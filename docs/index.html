@@ -32,11 +32,11 @@
     <h2>Add column</h2>
     <p>Column name:</p>
     <input type="text" id="colname">
-    <p>Datatype:</p>
+<!--     <p>Datatype:</p>
     <input type="radio" name="coldatatype" id="cdt-str" value="str">
     <label for="cdt-str">String</label>
     <input type="radio" name="coldatatype" id="cdt-int" value="int">
-    <label for="cdt-int">Integer</label>
+    <label for="cdt-int">Integer</label> -->
     <button onclick="addCol()">Add column</button>
 
     <h2>Existing tables</h2>
@@ -108,7 +108,7 @@
             if (resp.ok) {
               resp.json()
 //                .then(data => console.log(data))
-                .then(data => formatTable(data))
+                .then(data => formatTable(data, true))
                 .then(elmt => tableDisplay.replaceChildren(elmt))
             }
             else {
@@ -138,7 +138,7 @@
       async function addCol() {
         fetch(SERVER + '/addcol?name=' + nameInput.value
             + '&newcol=' + colnameInput.value
-            + '&datatype=' + getColDataType(), {
+            /*+ '&datatype=' + getColDataType()*/, {
           method: 'POST',
           headers: {
             'Authorization': pwdInput.value
@@ -148,6 +148,26 @@
           .then(msg => {
             alert(msg)
             viewTable()
+          })
+          .catch(err => handleError(err))
+      }
+
+      // Update value
+      function update(row,col,value) {
+        console.log('Update value in row "' + row + '" and column "' + col + '" with value "' + value + '".')
+
+        fetch(SERVER + '/update?name=' + nameInput.value
+            + '&row=' + row + '&col=' + col
+            + '&value=' + value, {
+          method: 'PUT',
+          headers: {
+            'Authorization': pwdInput.value
+          }
+        })
+          .then(resp => resp.text())
+          .then(msg => {
+            alert(msg)
+//            viewTable()
           })
           .catch(err => handleError(err))
       }
@@ -170,9 +190,9 @@
       }
 
 
-      // Format received JSON table as HTML table (non-editable)
+      // Format received JSON table as HTML table
       // Returns an HTMLTableElement
-      function formatTable(tableData) {
+      function formatTable(tableData, editable) {
         const table = document.createElement('table')
 
         // Make headers
@@ -191,9 +211,25 @@
         for (rowData of tableData.data) {
           nextRow = document.createElement('tr')
 
-          for (txt of rowData) {
+          for (i in rowData) {
+            txt = rowData[i] == null ? '' : rowData[i]
             cell = document.createElement('td')
-            txtNode = document.createTextNode(txt == null ?'' : txt)
+
+            // Create cell content
+            txtNode = document.createElement('input')
+            txtNode.setAttribute("type", "text")
+            txtNode.setAttribute("value", txt)
+            txtNode.setAttribute("onchange", "update('" + rowData[0] + "','" + tableData.fields[i] + "',this.value)")
+
+            if (tableData.fields[i] == 'id') {
+              txtNode.setAttribute("type", "text")
+              txtNode.setAttribute("class", "rowid")
+              txtNode.setAttribute("disabled", "")
+            }
+            if (!editable) {
+              txtNode.setAttribute("disabled", "")
+            }
+
             cell.appendChild(txtNode)
             nextRow.appendChild(cell)
           }
@@ -205,11 +241,11 @@
       }
 
       // Helper function to get column data type
-      function getColDataType() {
+/*       function getColDataType() {
         const chosen = document.querySelector('input[name="coldatatype"]:checked');
         
         return chosen ? chosen.value : 'none'
-      }
+      } */
 
       // Error handling for fetch
       function handleError(err) {
@@ -226,7 +262,7 @@
             if (resp.ok) {
               resp.json()
 //                .then(data => console.log(data))
-                .then(data => formatTable(data))
+                .then(data => formatTable(data, false))
                 .then(elmt => masterTable.replaceChildren(elmt))
             }
             else {
