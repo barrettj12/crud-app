@@ -127,14 +127,7 @@ def viewTable():
         abort(403, description = 'Incorrect password for table "' + name + '".')
 
     # Get table fields
-    cur.execute(
-     """SELECT column_name
-        FROM information_schema.columns
-        WHERE table_name = %s
-        AND table_schema = 'public';""",
-        (name,)
-    )
-    cols = [x[0] for x in cur.fetchall()]  # flatten inner tuples
+    cols = getCols(name, cur)
 
     # Get table data
     cur.execute(
@@ -185,7 +178,7 @@ def addRow():
     if storedPwd and pwd != storedPwd:
         abort(403, description = 'Incorrect password for table "' + tablename + '".')
 
-    # Add new column to table
+    # Add new row to table
     cur.execute(
         SQL('INSERT INTO {} DEFAULT VALUES;').format(Identifier(tablename))
     )        
@@ -213,8 +206,8 @@ def addCol():
         abort(403, description = 'Not allowed to modify table "tables".')
     elif not colname:
         abort(400, description = 'Please provide a name for the new column in table "' + tablename + '".')
-    elif not datatype:
-        abort(400, description = 'Please provide the datatype for the new column "' + colname + '" in table "' + tablename + '". Possible options are: ' + (', '.join(f'"{k}"' for k in DATATYPES.keys)) + '.')
+    elif not datatype or datatype not in DATATYPES:
+        abort(400, description = 'Please provide a valid datatype for the new column "' + colname + '" in table "' + tablename + '". Possible options are: ' + (', '.join(f'"{k}"' for k in DATATYPES)) + '.')
 
     # Connect to DB
     conn = psycopg2.connect(DATABASE_URL)
@@ -233,6 +226,12 @@ def addCol():
 
     if storedPwd and pwd != storedPwd:
         abort(403, description = 'Incorrect password for table "' + tablename + '".')
+
+    # Check column doesn't already exist
+    cols = getCols(tablename, cur)
+
+    if colname in cols:
+        abort(409, 'Column "' + colname + '" already exists in table "' + tablename + '".')
 
     # Add new column to table
     cur.execute(
@@ -361,3 +360,19 @@ def getTables():
         fields = ["id", "name", "pwd"],
         data = tables
     )
+
+
+
+# HELPER METHODS
+
+# Get column names for a given table
+def getCols(name, cur):
+    cur.execute(
+     """SELECT column_name
+        FROM information_schema.columns
+        WHERE table_name = %s
+        AND table_schema = 'public';""",
+        (name,)
+    )
+
+    return [x[0] for x in cur.fetchall()]  # flatten inner tuples
