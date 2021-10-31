@@ -1,15 +1,48 @@
-input[type="text"] {
-  width: 100px;
+main {
+  margin: 0px 30px 20px;
 }
 
-.rowid {
-  width: 20px !important;
+body {
+  margin: auto;
+  max-width: 650px;
+}
+
+input[type="text"], input[type="password"] {
+  width: 15ch;
+}
+
+button {
+  background-color: white;
+  border: 1px solid black;
+  color: black;
+  font-size: 12pt;
+  font-weight: bold;
+}
+
+button:hover {
+  background-color: #fafafa;
+}
+
+table {
+  margin-top: 10px;
+  width: auto;
+}
+
+th {
+  border: 1px solid #ddd;
   text-align: center;
 }
 
-table, th/*, td*/ {
-  border: 1px solid black;
-  border-collapse: collapse;
-  padding: 5px;
-  margin-top: 10px;
+td {
+  /* display: inline; */
+  padding: 0px;
+}
+
+td input {
+  margin: 0px;
+}
+
+.rowid {
+  width: 50px !important;
+  text-align: center;
 }
