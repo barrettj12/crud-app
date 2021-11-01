@@ -7,6 +7,7 @@ from flask import Flask, request, abort
 from flask.json import jsonify
 #from flask_sqlalchemy import SQLAlchemy
 #from sqlalchemy import create_engine
+from contextlib import contextmanager
 
 # Constants
 ALLOWED_ORIGINS = {
@@ -67,34 +68,25 @@ def makeTable():
     if not name:
         abort(400, description = 'Please provide a table name.')
 
-    # Connect to DB
-    conn = psycopg2.connect(DATABASE_URL)
-    cur = conn.cursor()
+    with dbWrap() as cur:
+        # Check table doesn't already exist
+        cur.execute('SELECT name FROM tables WHERE name = %s;', (name,))
+        names = cur.fetchone()
 
-    # Check table doesn't already exist
-    cur.execute('SELECT name FROM tables WHERE name = %s;', (name,))
-    names = cur.fetchone()
+        if names:
+            abort(409, description = 'There is already a table called "' +
+                                    name + '". Please pick a different name.')
 
-    if names:
-        abort(409, description = 'There is already a table called "' +
-                                  name + '". Please pick a different name.')
+        # Create the table
+        cur.execute(
+            SQL('CREATE TABLE {} (id INT GENERATED ALWAYS AS IDENTITY);').format(Identifier(name))
+        )
 
-    # Create the table
-    cur.execute(
-        SQL('CREATE TABLE {} (id INT GENERATED ALWAYS AS IDENTITY);').format(Identifier(name))
-    )
-
-    # Enter table in master list 'tables'
-    if pwd:
-        cur.execute('INSERT INTO tables (name, pwd) VALUES (%s, %s);', (name, pwd))
-    else:
-        cur.execute('INSERT INTO tables (name) VALUES (%s);', (name,))
-        
-
-    # Commit and disconnect from DB
-    conn.commit()
-    cur.close()
-    conn.close()
+        # Enter table in master list 'tables'
+        if pwd:
+            cur.execute('INSERT INTO tables (name, pwd) VALUES (%s, %s);', (name, pwd))
+        else:
+            cur.execute('INSERT INTO tables (name) VALUES (%s);', (name,))
 
     return 'Table "' + name + '" successfully created.'
 
@@ -110,37 +102,22 @@ def viewTable():
     elif name == 'tables':
         abort(403, description = 'Not allowed to view table "tables".')
 
-    # Connect to DB
-    conn = psycopg2.connect(DATABASE_URL)
-    cur = conn.cursor()
+    with dbWrap() as cur:
+        # Check table and password
+        checkTablePwd(name, pwd, cur)
 
-    # Check table exists
-    cur.execute('SELECT name FROM tables WHERE name = %s;', (name,))
-    names = cur.fetchone()
+        # Get table fields
+        cols = getCols(name, cur)
 
-    if not names:
-        abort(404, description = 'There is no table called "' + name + '".')
-
-    # Check password
-    cur.execute('SELECT pwd FROM tables WHERE name = %s;', (name,))
-    storedPwd = cur.fetchone()[0]
-
-    if storedPwd and pwd != storedPwd:
-        abort(403, description = 'Incorrect password for table "' + name + '".')
-
-    # Get table fields
-    cols = getCols(name, cur)
-
-    # Get table data
-    cur.execute(
-        SQL('SELECT * FROM {};').format(Identifier(name))
-    )
-    tableData = cur.fetchall()     # Returns list of tuples
-
-    # Commit and disconnect from DB
-    conn.commit()
-    cur.close()
-    conn.close()
+        # Get table data
+        cur.execute(
+            SQL(
+            """SELECT *
+                FROM {}
+                ORDER BY id ASC;"""
+            ).format(Identifier(name))
+        )
+        tableData = cur.fetchall()     # Returns list of tuples
 
     # Encode 'tables' data as JSON
     return jsonify(
@@ -162,33 +139,14 @@ def addRow():
     elif tablename == 'tables':
         abort(403, description = 'Not allowed to modify table "tables".')
 
-    # Connect to DB
-    conn = psycopg2.connect(DATABASE_URL)
-    cur = conn.cursor()
+    with dbWrap() as cur:
+        # Check table and password
+        checkTablePwd(tablename, pwd, cur)
 
-    # Check table exists
-    cur.execute('SELECT name FROM tables WHERE name = %s;', (tablename,))
-    names = cur.fetchone()
-
-    if not names:
-        abort(404, description = 'There is no table called "' + tablename + '".')
-
-    # Check password
-    cur.execute('SELECT pwd FROM tables WHERE name = %s;', (tablename,))
-    storedPwd = cur.fetchone()[0]
-
-    if storedPwd and pwd != storedPwd:
-        abort(403, description = 'Incorrect password for table "' + tablename + '".')
-
-    # Add new row to table
-    cur.execute(
-        SQL('INSERT INTO {} DEFAULT VALUES;').format(Identifier(tablename))
-    )        
-
-    # Commit and disconnect from DB
-    conn.commit()
-    cur.close()
-    conn.close()
+        # Add new row to table
+        cur.execute(
+            SQL('INSERT INTO {} DEFAULT VALUES;').format(Identifier(tablename))
+        )
 
     return 'Successfully added row to table "' + tablename + '".'
 
@@ -211,45 +169,26 @@ def addCol():
 #    elif not datatype or datatype not in DATATYPES:
 #        abort(400, description = 'Please provide a valid datatype for the new column "' + colname + '" in table "' + tablename + '". Possible options are: ' + (', '.join(f'"{k}"' for k in DATATYPES)) + '.')
 
-    # Connect to DB
-    conn = psycopg2.connect(DATABASE_URL)
-    cur = conn.cursor()
+    with dbWrap() as cur:
+        # Check table and password
+        checkTablePwd(tablename, pwd, cur)
 
-    # Check table exists
-    cur.execute('SELECT name FROM tables WHERE name = %s;', (tablename,))
-    names = cur.fetchone()
+        # Check column doesn't already exist
+        cols = getCols(tablename, cur)
 
-    if not names:
-        abort(404, description = 'There is no table called "' + tablename + '".')
+        if colname in cols:
+            abort(409, 'Column "' + colname + '" already exists in table "' + tablename + '".')
 
-    # Check password
-    cur.execute('SELECT pwd FROM tables WHERE name = %s;', (tablename,))
-    storedPwd = cur.fetchone()[0]
-
-    if storedPwd and pwd != storedPwd:
-        abort(403, description = 'Incorrect password for table "' + tablename + '".')
-
-    # Check column doesn't already exist
-    cols = getCols(tablename, cur)
-
-    if colname in cols:
-        abort(409, 'Column "' + colname + '" already exists in table "' + tablename + '".')
-
-    # Add new column to table
-    cur.execute(
-        SQL(
-            'ALTER TABLE {tn} ADD COLUMN {cn} TEXT;'#{dt};'
-        ).format(
-            tn = Identifier(tablename),
-            cn = Identifier(colname)#,
- #           dt = SQL(DATATYPES[datatype])
+        # Add new column to table
+        cur.execute(
+            SQL(
+                'ALTER TABLE {tn} ADD COLUMN {cn} TEXT;'#{dt};'
+            ).format(
+                tn = Identifier(tablename),
+                cn = Identifier(colname)#,
+    #           dt = SQL(DATATYPES[datatype])
+            )
         )
-    )        
-
-    # Commit and disconnect from DB
-    conn.commit()
-    cur.close()
-    conn.close()
 
     return 'Successfully added column "' + colname + '" to table "' + tablename + '".'
 
@@ -273,47 +212,28 @@ def update():
     elif not colname:
         abort(400, description = 'Please provide the name of the column you would like to update in table "' + tablename + '".')
 
-    # Connect to DB
-    conn = psycopg2.connect(DATABASE_URL)
-    cur = conn.cursor()
+    with dbWrap() as cur:
+        # Check table and password
+        checkTablePwd(tablename, pwd, cur)
 
-    # Check table exists
-    cur.execute('SELECT name FROM tables WHERE name = %s;', (tablename,))
-    names = cur.fetchone()
+        # Check column exists
+        cols = getCols(tablename, cur)
 
-    if not names:
-        abort(404, description = 'There is no table called "' + tablename + '".')
+        if colname not in cols:
+            abort(404, 'Column "' + colname + '" already exists in table "' + tablename + '".')
 
-    # Check password
-    cur.execute('SELECT pwd FROM tables WHERE name = %s;', (tablename,))
-    storedPwd = cur.fetchone()[0]
-
-    if storedPwd and pwd != storedPwd:
-        abort(403, description = 'Incorrect password for table "' + tablename + '".')
-
-    # Check column exists
-    cols = getCols(tablename, cur)
-
-    if colname not in cols:
-        abort(404, 'Column "' + colname + '" already exists in table "' + tablename + '".')
-
-    # Add new column to table
-    cur.execute(
-        SQL(
-         """UPDATE {tn}
-            SET {cn} = %s
-            WHERE id = %s;"""
-        ).format(
-            tn = Identifier(tablename),
-            cn = Identifier(colname)
-        ),
-        (newval if newval else '', rowid)
-    )
-
-    # Commit and disconnect from DB
-    conn.commit()
-    cur.close()
-    conn.close()
+        # Add new column to table
+        cur.execute(
+            SQL(
+            """UPDATE {tn}
+                SET {cn} = %s
+                WHERE id = %s;"""
+            ).format(
+                tn = Identifier(tablename),
+                cn = Identifier(colname)
+            ),
+            (newval if newval else '', rowid)
+        )
 
     return 'Successfully updated row "' + rowid + '", column "' + colname + '" in table "' + tablename + '" with the value "' + newval + '".'
 
@@ -329,36 +249,17 @@ def deleteTable():
     elif name == 'tables':
         abort(403, description = 'Not allowed to delete table "tables".')
 
-    # Connect to DB
-    conn = psycopg2.connect(DATABASE_URL)
-    cur = conn.cursor()
+    with dbWrap() as cur:
+        # Check table and password
+        checkTablePwd(name, pwd, cur)
 
-    # Check table exists
-    cur.execute('SELECT name FROM tables WHERE name = %s;', (name,))
-    names = cur.fetchone()
+        # Drop table
+        cur.execute(
+            SQL('DROP TABLE {};').format(Identifier(name))
+        )
 
-    if not names:
-        abort(404, description = 'There is no table called "' + name + '".')
-
-    # Check password
-    cur.execute('SELECT pwd FROM tables WHERE name = %s;', (name,))
-    storedPwd = cur.fetchone()[0]
-
-    if storedPwd and pwd != storedPwd:
-        abort(403, description = 'Incorrect password for table "' + name + '".')
-
-    # Drop table
-    cur.execute(
-        SQL('DROP TABLE {};').format(Identifier(name))
-    )
-
-    # Delete entry from master list
-    cur.execute('DELETE FROM tables WHERE name = %s;', (name,))
-
-    # Commit and disconnect from DB
-    conn.commit()
-    cur.close()
-    conn.close()
+        # Delete entry from master list
+        cur.execute('DELETE FROM tables WHERE name = %s;', (name,))
 
     return 'Table "' + name + '" successfully deleted.'
 
@@ -371,36 +272,27 @@ def deleteTable():
 # Reset all data in database
 @app.route('/reset', methods = ['DELETE'])
 def reset():
-    # Connect to DB
-    conn = psycopg2.connect(DATABASE_URL)
-    cur = conn.cursor()
+    with dbWrap() as cur:
+        # Delete all existing data
+        cur.execute(
+        """DROP SCHEMA public CASCADE;
+            CREATE SCHEMA public;
+            GRANT ALL ON SCHEMA public TO postgres;
+            GRANT ALL ON SCHEMA public TO public;
+            COMMENT ON SCHEMA public IS 'standard public schema';"""
+        )
 
-    # Delete all existing data
-    #
-    cur.execute(
-     """DROP SCHEMA public CASCADE;
-        CREATE SCHEMA public;
-        GRANT ALL ON SCHEMA public TO postgres;
-        GRANT ALL ON SCHEMA public TO public;
-        COMMENT ON SCHEMA public IS 'standard public schema';"""
-    )
+        # Create the master list 'tables'
+        cur.execute(
+        """CREATE TABLE tables (
+                id INT GENERATED ALWAYS AS IDENTITY,
+                name TEXT NOT NULL,
+                pwd TEXT
+            );"""
+        )
 
-    # Create the master list 'tables'
-    cur.execute(
-     """CREATE TABLE tables (
-            id INT GENERATED ALWAYS AS IDENTITY,
-            name TEXT NOT NULL,
-            pwd TEXT
-        );"""
-    )
-
-    # Enter table in master list 'tables'
-    cur.execute("INSERT INTO tables (name) VALUES ('tables');")
-
-    # Commit and disconnect from DB
-    conn.commit()
-    cur.close()
-    conn.close()
+        # Enter table in master list 'tables'
+        cur.execute("INSERT INTO tables (name) VALUES ('tables');")
 
     return 'Reset successful.'
 
@@ -408,17 +300,9 @@ def reset():
 # Get list of tables
 @app.route('/tables', methods = ['GET'])
 def getTables():
-    # Connect to DB
-    conn = psycopg2.connect(DATABASE_URL)
-    cur = conn.cursor()
-
-    cur.execute('SELECT * FROM tables;')
-    tables = cur.fetchall()     # Returns list of tuples
-
-    # Commit and disconnect from DB
-    conn.commit()
-    cur.close()
-    conn.close()
+    with dbWrap() as cur:
+        cur.execute('SELECT * FROM tables ORDER BY id ASC;')
+        tables = cur.fetchall()     # Returns list of tuples
 
     # Encode 'tables' data as JSON
     return jsonify(
@@ -442,3 +326,37 @@ def getCols(name, cur):
     )
 
     return [x[0] for x in cur.fetchall()]  # flatten inner tuples
+
+
+# Check table exists and password is correct
+def checkTablePwd(name, pwd, cur):
+    # Check table exists
+    cur.execute('SELECT name FROM tables WHERE name = %s;', (name,))
+    names = cur.fetchone()
+
+    if not names:
+        abort(404, description = 'There is no table called "' + name + '".')
+
+    # Check password
+    cur.execute('SELECT pwd FROM tables WHERE name = %s;', (name,))
+    storedPwd = cur.fetchone()[0]
+
+    if storedPwd and pwd != storedPwd:
+        abort(403, description = 'Incorrect password for table "' + name + '".')
+
+
+# Wrapper method for database logic
+# Open connection to DB, run code, commit and close
+@contextmanager
+def dbWrap():
+    # Connect to DB
+    conn = psycopg2.connect(DATABASE_URL)
+    cur = conn.cursor()
+
+    # Pass cur back to function
+    yield cur
+
+    # Commit and disconnect from DB
+    conn.commit()
+    cur.close()
+    conn.close()
