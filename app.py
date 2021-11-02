@@ -61,12 +61,11 @@ def testResponse():
 def makeTable():
     # Get provided parameters (in POST body)
     name = request.form.get('name')
+    checkName(name, "create")
+
     pwd = request.form.get('pwd')
     print('name is "' + name + '" : ' + str(type(name)))
     print('pwd is "' + pwd + '"')
-
-    if not name:
-        abort(400, description = 'Please provide a table name.')
 
     with dbWrap() as cur:
         # Check table doesn't already exist
@@ -74,8 +73,7 @@ def makeTable():
         names = cur.fetchone()
 
         if names:
-            abort(409, description = 'There is already a table called "' +
-                                    name + '". Please pick a different name.')
+            abort(409, description = 'There is already a table called "' + name + '". Please pick a different name.')
 
         # Create the table
         cur.execute(
@@ -95,12 +93,8 @@ def makeTable():
 @app.route('/viewtable', methods = ['GET'])
 def viewTable():
     name = request.args.get('name')     # sent in query string
+    checkName(name, "view")
     pwd = request.headers.get('Authorization')      # sent as auth header
-
-    if not name:
-        abort(400, description = 'Please provide a table name.')
-    elif name == 'tables':
-        abort(403, description = 'Not allowed to view table "tables".')
 
     with dbWrap() as cur:
         # Check table and password
@@ -131,13 +125,8 @@ def viewTable():
 @app.route('/addrow', methods=['POST'])
 def addRow():
     tablename = request.args.get('name')     # sent in query string
+    checkName(tablename, "modify")
     pwd = request.headers.get('Authorization')      # sent as auth header
-
-    # Check request is proper
-    if not tablename:
-        abort(400, description = 'Please provide a table name.')
-    elif tablename == 'tables':
-        abort(403, description = 'Not allowed to modify table "tables".')
 
     with dbWrap() as cur:
         # Check table and password
@@ -160,12 +149,8 @@ def addCol():
     pwd = request.headers.get('Authorization')      # sent as auth header
 
     # Check request is proper
-    if not tablename:
-        abort(400, description = 'Please provide a table name.')
-    elif tablename == 'tables':
-        abort(403, description = 'Not allowed to modify table "tables".')
-    elif not colname:
-        abort(400, description = 'Please provide a name for the new column in table "' + tablename + '".')
+    checkName(tablename, 'modify')
+    checkRowCol(tablename, 'add', colname, 'column')
 #    elif not datatype or datatype not in DATATYPES:
 #        abort(400, description = 'Please provide a valid datatype for the new column "' + colname + '" in table "' + tablename + '". Possible options are: ' + (', '.join(f'"{k}"' for k in DATATYPES)) + '.')
 
@@ -203,14 +188,9 @@ def update():
     pwd = request.headers.get('Authorization')      # sent as auth header
 
     # Check request is proper
-    if not tablename:
-        abort(400, description = 'Please provide a table name.')
-    elif tablename == 'tables':
-        abort(403, description = 'Not allowed to modify table "tables".')
-    elif not rowid:
-        abort(400, description = 'Please provide the id of the row you would like to update in table "' + tablename + '".')
-    elif not colname:
-        abort(400, description = 'Please provide the name of the column you would like to update in table "' + tablename + '".')
+    checkName(tablename, "modify")
+    checkRowCol(tablename, 'update', rowid, 'row')
+    checkRowCol(tablename, 'update', colname, 'column')
 
     with dbWrap() as cur:
         # Check table and password
@@ -244,10 +224,7 @@ def deleteTable():
     name = request.args.get('name')     # sent in query string
     pwd = request.headers.get('Authorization')      # sent as auth header
 
-    if not name:
-        abort(400, description = 'Please provide a table name.')
-    elif name == 'tables':
-        abort(403, description = 'Not allowed to delete table "tables".')
+    checkName(name, "delete")
 
     with dbWrap() as cur:
         # Check table and password
@@ -350,13 +327,30 @@ def checkTablePwd(name, pwd, cur):
 @contextmanager
 def dbWrap():
     # Connect to DB
-    conn = psycopg2.connect(DATABASE_URL)
+    conn = psycopg2.connect(DATABASE_URL)   
     cur = conn.cursor()
 
-    # Pass cur back to function
-    yield cur
+    try:
+        yield cur   # Pass cur back to function
+        
+    finally:
+        # Commit and disconnect from DB
+        conn.commit()
+        cur.close()
+        conn.close()
 
-    # Commit and disconnect from DB
-    conn.commit()
-    cur.close()
-    conn.close()
+
+# Check table name is not null or forbidden
+def checkName(name: str, action: str):
+    if not name:
+        abort(400, description = 'Please provide a table name.')
+    elif name == 'tables':
+        abort(403, description = 'Not allowed to ' + action + ' table "tables".')
+
+
+# Check row/column name is not null
+def checkRowCol(tablename: str, action: str, rcname: str, rctype: str):
+    if not rcname:
+        ident = 'id' if rctype == 'row' else 'name'
+        
+        abort(400, description = 'Please provide the ' + ident + ' of the ' + rctype + ' you would like to ' + action + ' in table "' + tablename + '".')
