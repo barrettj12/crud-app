@@ -84,7 +84,7 @@ async function addCol() {
     // Options
     qparams: {
       name: nameInput.value,
-      newcol: colnameInput.value,
+      col: colnameInput.value,
       /* datatype: getColDataType() */
     },
     mthd: 'POST'
