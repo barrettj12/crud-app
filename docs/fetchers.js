@@ -71,6 +71,10 @@ async function addRow() {
   })
 }
 
+async function deleteRow(rowid) {
+  window.confirm('Are you sure you want to delete row ' + rowid + '?')
+}
+
 // Add column to table
 async function addCol() {
   makeReq('/addcol',
@@ -91,8 +95,13 @@ async function addCol() {
   })
 }
 
+// Delete column from table
+async function deleteCol(colname) {
+  window.confirm('Are you sure you want to delete column "' + colname + '"?')
+}
+
 // Update value
-function update(row,col,value) {
+async function update(row,col,value) {
   console.log('Update value in row "' + row + '" and column "' + col + '" with value "' + value + '".')
 
   makeReq('/update',
@@ -111,6 +120,11 @@ function update(row,col,value) {
     },
     mthd: 'PUT'
   })
+}
+
+// Sort by column
+async function sortByCol(colname) {
+  alert('Sorting by column "' + colname + '"')
 }
 
 // Delete table
@@ -246,14 +260,33 @@ async function makeReq(api, onOK = (data) => {
 // Returns an HTMLTableElement
 function formatTable(tableData, editable) {
   const table = document.createElement('table')
+  //editable = true
 
   // Make headers
   headerRow = document.createElement('tr')
 
   for (hdText of tableData.fields) {
     colHeader = document.createElement('th')
+
+    // Add column name
     hdNode = document.createTextNode(hdText)
     colHeader.appendChild(hdNode)
+
+    if (editable) {
+      // Add buttons
+      if (hdText !== 'id') {
+        rmBt = newRmBt()
+        rmBt.setAttribute("onclick", "deleteCol('" + hdText + "')")
+        colHeader.appendChild(rmBt)
+      }
+
+      sortBt = document.createElement('a')
+      sortBt.innerHTML = '⇅'
+      sortBt.setAttribute('class', 'sort-button')
+      sortBt.setAttribute("onclick", "sortByCol('" + hdText + "')")
+      colHeader.appendChild(sortBt)
+    }
+
     headerRow.appendChild(colHeader)
   }
 
@@ -286,10 +319,26 @@ function formatTable(tableData, editable) {
       nextRow.appendChild(cell)
     }
 
+    if (editable) {
+      // Add remove button
+      rmBt = newRmBt()
+      rmBt.setAttribute("onclick", "deleteRow('" + rowData[0] + "')")
+      nextRow.appendChild(rmBt)
+    }
+
     table.appendChild(nextRow)
   }
 
   return table;
+}
+
+// Makes a remove button for rows and columns
+function newRmBt() {
+  rmBt = document.createElement('a')
+  rmBt.innerHTML = '✖'
+  rmBt.setAttribute('class', 'remove-button')
+
+  return rmBt
 }
 
 // Helper function to get column data type
