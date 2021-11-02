@@ -160,18 +160,19 @@ def deleteRow():
             SQL('SELECT id FROM {};').format(Identifier(tablename))
         )
         rows = [x[0] for x in cur.fetchall()]
+        print(rows)
 
-        if rowid not in rows:
+        if int(rowid) not in rows:
             abort(404, 'Row "' + rowid + '" doesn\'t exist in table "' + tablename + '".')
 
         # Delete row from table
         cur.execute(
             SQL(
-                'DELETE FROM {tn} WHERE id = {rid};'#{dt};'
+                'DELETE FROM {tn} WHERE id = %s;'
             ).format(
-                tn = Identifier(tablename),
-                rid = Identifier(rowid)
-            )
+                tn = Identifier(tablename)
+            ),
+            (rowid,)
         )
 
     return 'Successfully deleted row "' + rowid + '" from table "' + tablename + '".'
