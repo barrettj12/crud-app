@@ -24,25 +24,43 @@ button:hover {
 }
 
 table {
+  /* border-width: 0px; */
+  border-collapse: collapse;
   margin-top: 10px;
   width: auto;
 }
 
 th {
   border: 1px solid #ddd;
+  border-collapse: collapse;
   text-align: center;
+  width: 100px;
+}
+
+.remove-button {
+  color: red;
+  float: left;
+}
+
+.sort-button {
+  color: blue;
+  float: right;
 }
 
 td {
+  border: 1px solid #ddd;
+  border-collapse: collapse;
   /* display: inline; */
   padding: 0px;
 }
 
 td input {
+  border-width: 0px;
   margin: 0px;
+  width: 100% !important;
 }
 
 .rowid {
-  width: 50px !important;
+  width: 100% !important;
   text-align: center;
 }
