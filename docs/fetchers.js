@@ -71,8 +71,25 @@ async function addRow() {
   })
 }
 
+// Delete row from table
 async function deleteRow(rowid) {
-  window.confirm('Are you sure you want to delete row ' + rowid + '?')
+  if (window.confirm('Are you sure you want to delete row ' + rowid + '?')) {
+    makeReq('/deleterow',
+
+      // Code to run on response
+      (msg) => {
+        alert(msg)
+        viewTable()
+      }, {
+        
+      // Options
+      qparams: {
+        name: nameInput.value,
+        row: rowid
+      },
+      mthd: 'DELETE'
+    })
+  }
 }
 
 // Add column to table
@@ -88,7 +105,7 @@ async function addCol() {
     // Options
     qparams: {
       name: nameInput.value,
-      newcol: colnameInput.value,
+      col: colnameInput.value,
       /* datatype: getColDataType() */
     },
     mthd: 'POST'
@@ -97,7 +114,23 @@ async function addCol() {
 
 // Delete column from table
 async function deleteCol(colname) {
-  window.confirm('Are you sure you want to delete column "' + colname + '"?')
+  if (window.confirm('Are you sure you want to delete column "' + colname + '"?')) {
+    makeReq('/deletecol',
+
+      // Code to run on response
+      (msg) => {
+        alert(msg)
+        viewTable()
+      }, {
+        
+      // Options
+      qparams: {
+        name: nameInput.value,
+        col: colname
+      },
+      mthd: 'DELETE'
+    })
+  }
 }
 
 // Update value
@@ -237,7 +270,7 @@ async function makeReq(api, onOK = (data) => {
       onOK(data)
     }
     else {
-      st = response.status
+      st = resp.status
       if (400 <= st && st <= 499) {
         // Client error
         errMsg = await resp.text()

@@ -140,19 +140,57 @@ def addRow():
     return 'Successfully added row to table "' + tablename + '".'
 
 
+# Delete given row from table
+@app.route('/deleterow', methods=['DELETE'])
+def deleteRow():
+    tablename = request.args.get('name')     # sent in query string
+    rowid = request.args.get('row')
+    pwd = request.headers.get('Authorization')      # sent as auth header
+
+    # Check request is proper
+    checkName(tablename, 'modify')
+    checkRowCol(tablename, 'delete', rowid, 'row')
+
+    with dbWrap() as cur:
+        # Check table and password
+        checkTablePwd(tablename, pwd, cur)
+
+        # Check row exists
+        cur.execute(
+            SQL('SELECT id FROM {};').format(Identifier(tablename))
+        )
+        rows = [x[0] for x in cur.fetchall()]
+        print(rows)
+
+        if int(rowid) not in rows:
+            abort(404, 'Row "' + rowid + '" doesn\'t exist in table "' + tablename + '".')
+
+        # Delete row from table
+        cur.execute(
+            SQL(
+                'DELETE FROM {tn} WHERE id = %s;'
+            ).format(
+                tn = Identifier(tablename)
+            ),
+            (rowid,)
+        )
+
+    return 'Successfully deleted row "' + rowid + '" from table "' + tablename + '".'
+
+
 # Add column to existing table
 @app.route('/addcol', methods=['POST'])
 def addCol():
     tablename = request.args.get('name')     # sent in query string
-    colname = request.args.get('newcol')
-#    datatype = request.args.get('datatype')
+    colname = request.args.get('col')
+    # datatype = request.args.get('datatype')
     pwd = request.headers.get('Authorization')      # sent as auth header
 
     # Check request is proper
     checkName(tablename, 'modify')
     checkRowCol(tablename, 'add', colname, 'column')
-#    elif not datatype or datatype not in DATATYPES:
-#        abort(400, description = 'Please provide a valid datatype for the new column "' + colname + '" in table "' + tablename + '". Possible options are: ' + (', '.join(f'"{k}"' for k in DATATYPES)) + '.')
+    # elif not datatype or datatype not in DATATYPES:
+        # abort(400, description = 'Please provide a valid datatype for the new column "' + colname + '" in table "' + tablename + '". Possible options are: ' + (', '.join(f'"{k}"' for k in DATATYPES)) + '.')
 
     with dbWrap() as cur:
         # Check table and password
@@ -176,6 +214,40 @@ def addCol():
         )
 
     return 'Successfully added column "' + colname + '" to table "' + tablename + '".'
+
+
+# Delete given column from table
+@app.route('/deletecol', methods=['DELETE'])
+def deleteCol():
+    tablename = request.args.get('name')     # sent in query string
+    colname = request.args.get('col')
+    pwd = request.headers.get('Authorization')      # sent as auth header
+
+    # Check request is proper
+    checkName(tablename, 'modify')
+    checkRowCol(tablename, 'delete', colname, 'column')
+
+    with dbWrap() as cur:
+        # Check table and password
+        checkTablePwd(tablename, pwd, cur)
+
+        # Check column exists
+        cols = getCols(tablename, cur)
+
+        if colname not in cols:
+            abort(404, 'Column "' + colname + '" doesn\'t exist in table "' + tablename + '".')
+
+        # Delete column from table
+        cur.execute(
+            SQL(
+                'ALTER TABLE {tn} DROP COLUMN {cn};'
+            ).format(
+                tn = Identifier(tablename),
+                cn = Identifier(colname)
+            )
+        )
+
+    return 'Successfully deleted column "' + colname + '" from table "' + tablename + '".'
 
 
 # Update cell value in table
