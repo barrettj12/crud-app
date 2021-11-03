@@ -1,53 +1,25 @@
+#   CRUD APP
+#     https://github.com/barrettj12/crud-app
+#   Author: Jordan Mitchell Barrett (@barrettj12)
+#     https://github.com/barrettj12
+#
+#   apis.py
+#   APIs provided by the app
+
+
 # Imports
-from contextlib import contextmanager
-from flask import Flask, request, abort as fabort
-from flask.helpers import make_response
+from app import app
+from app.helpers import abort, checkName, checkRowCol, checkTablePwd, dbWrap, getCols
+from flask import request
 from flask.json import jsonify
-from os import environ
-from psycopg2 import connect
-from psycopg2.sql import SQL, Identifier
-
-
-# Constants
-ALLOWED_ORIGINS = {
-    'https://barrettj12.github.io',
-    'http://127.0.0.1:5500',
-    None            # probably should remove this later
-}
-DATABASE_URL = environ['DATABASE_URL']
-# DATATYPES = {
-#     'str': 'TEXT',
-#     'int': 'INT'
-# }
-
-
-# Initiate/configure app
-app = Flask(__name__)
-#app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
-#db = SQLAlchemy(app)
-
-
-# Pre/post methods
-@app.before_request
-def preReq():
-    # Check requests are allowed from this origin
-    if request.origin not in ALLOWED_ORIGINS:
-        abort(403, 'Requests not allowed from your domain: ' + str(request.origin))
-
-@app.after_request
-def postReq(response):
-    # Add CORS headers
-    response.headers['Access-Control-Allow-Origin'] = request.origin
-    response.headers['Access-Control-Allow-Headers'] = 'Authorization'
-    response.headers['Access-Control-Allow-Methods'] = '*'
-
-    return response
+from psycopg2.sql import Identifier, SQL
 
 
 # Landing page
 @app.route('/', methods = ['GET'])
 def landingPage():
     return "This is the backend API for crud-app. See https://github.com/barrettj12/crud-app"
+
 
 # API test interface
 @app.route('/test', methods = ['GET'])
@@ -310,125 +282,3 @@ def deleteTable():
         cur.execute('DELETE FROM tables WHERE name = %s;', (name,))
 
     return f'Table "{name}" successfully deleted.'
-
-
-
-
-# ADMIN METHODS
-# These are ONLY for testing and should be commented out in production
-
-# Reset all data in database
-@app.route('/reset', methods = ['DELETE'])
-def reset():
-    with dbWrap() as cur:
-        # Delete all existing data
-        cur.execute(
-        """DROP SCHEMA public CASCADE;
-            CREATE SCHEMA public;
-            GRANT ALL ON SCHEMA public TO postgres;
-            GRANT ALL ON SCHEMA public TO public;
-            COMMENT ON SCHEMA public IS 'standard public schema';"""
-        )
-
-        # Create the master list 'tables'
-        cur.execute(
-        """CREATE TABLE tables (
-                id INT GENERATED ALWAYS AS IDENTITY,
-                name TEXT NOT NULL,
-                pwd TEXT
-            );"""
-        )
-
-        # Enter table in master list 'tables'
-        cur.execute("INSERT INTO tables (name) VALUES ('tables');")
-
-    return 'Reset successful.'
-
-
-# Get list of tables
-@app.route('/tables', methods = ['GET'])
-def getTables():
-    with dbWrap() as cur:
-        cur.execute('SELECT * FROM tables ORDER BY id ASC;')
-        tables = cur.fetchall()     # Returns list of tuples
-
-    # Encode 'tables' data as JSON
-    return jsonify(
-        name = 'tables',
-        fields = ["id", "name", "pwd"],
-        data = tables
-    )
-
-
-
-# HELPER METHODS
-
-# Get column names for a given table
-def getCols(name, cur):
-    cur.execute(
-     """SELECT column_name
-        FROM information_schema.columns
-        WHERE table_name = %s
-        AND table_schema = 'public';""",
-        (name,)
-    )
-
-    return [x[0] for x in cur.fetchall()]  # flatten inner tuples
-
-
-# Check table exists and password is correct
-def checkTablePwd(name, pwd, cur):
-    # Check table exists
-    cur.execute('SELECT name FROM tables WHERE name = %s;', (name,))
-    names = cur.fetchone()
-
-    if not names:
-        abort(404, f'There is no table called "{name}".')
-
-    # Check password
-    cur.execute('SELECT pwd FROM tables WHERE name = %s;', (name,))
-    storedPwd = cur.fetchone()[0]
-
-    if storedPwd and pwd != storedPwd:
-        abort(403, f'Incorrect password for table "{name}".')
-
-
-# Wrapper method for database logic
-# Open connection to DB, run code, commit and close
-@contextmanager
-def dbWrap():
-    # Connect to DB
-    conn = connect(DATABASE_URL)   
-    cur = conn.cursor()
-
-    try:
-        yield cur   # Pass cur back to function
-        
-    finally:
-        # Commit and disconnect from DB
-        conn.commit()
-        cur.close()
-        conn.close()
-
-
-# Check table name is not null or forbidden
-def checkName(name: str, action: str):
-    if not name:
-        abort(400, 'Please provide a table name.')
-    elif name == 'tables':
-        abort(403, f'Not allowed to {action} table "tables".')
-
-
-# Check row/column name is not null
-def checkRowCol(tablename: str, action: str, rcname: str, rctype: str):
-    if not rcname:
-        ident = 'id' if rctype == 'row' else 'name'
-        
-        abort(400, f'Please provide the {ident} of the {rctype} you would like to {action} in table "{tablename}".')
-
-
-# Abort with plain text instead of HTML
-def abort(status_code, message):
-    response = make_response(message)
-    response.status_code = status_code
-    fabort(response)
