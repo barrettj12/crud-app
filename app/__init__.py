@@ -4,7 +4,7 @@
 #     https://github.com/barrettj12
 #
 #   __init__.py
-#   Initialisation for app package
+#   Main file for app package
 
 
 # Set up app
@@ -40,8 +40,3 @@ def postReq(response):
     response.headers['Access-Control-Allow-Methods'] = '*'
 
     return response
-
-
-# Run app
-if __name__ == '__main__':
-    app.run()
