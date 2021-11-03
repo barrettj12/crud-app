@@ -1,13 +1,12 @@
 # Imports
-import os
-import psycopg2
-from psycopg2.sql import SQL, Identifier
-from flask import Flask, request, abort
-#from flask.helpers import make_response
-from flask.json import jsonify
-#from flask_sqlalchemy import SQLAlchemy
-#from sqlalchemy import create_engine
 from contextlib import contextmanager
+from flask import Flask, request, abort as fabort
+from flask.helpers import make_response
+from flask.json import jsonify
+from os import environ
+from psycopg2 import connect
+from psycopg2.sql import SQL, Identifier
+
 
 # Constants
 ALLOWED_ORIGINS = {
@@ -15,11 +14,11 @@ ALLOWED_ORIGINS = {
     'http://127.0.0.1:5500',
     None            # probably should remove this later
 }
-DATABASE_URL = os.environ['DATABASE_URL']
-#DATATYPES = {
-#    'str': 'TEXT',
-#    'int': 'INT'
-#}
+DATABASE_URL = environ['DATABASE_URL']
+# DATATYPES = {
+#     'str': 'TEXT',
+#     'int': 'INT'
+# }
 
 
 # Initiate/configure app
@@ -33,7 +32,7 @@ app = Flask(__name__)
 def preReq():
     # Check requests are allowed from this origin
     if request.origin not in ALLOWED_ORIGINS:
-        abort(403, description = 'Requests not allowed from your domain: ' + str(request.origin))
+        abort(403, 'Requests not allowed from your domain: ' + str(request.origin))
 
 @app.after_request
 def postReq(response):
@@ -64,8 +63,8 @@ def makeTable():
     checkName(name, "create")
 
     pwd = request.form.get('pwd')
-    print('name is "' + name + '" : ' + str(type(name)))
-    print('pwd is "' + pwd + '"')
+    # print(f'name is "{name}" : {type(name))}')
+    # print(f'pwd is "{pwd}"')
 
     with dbWrap() as cur:
         # Check table doesn't already exist
@@ -73,7 +72,7 @@ def makeTable():
         names = cur.fetchone()
 
         if names:
-            abort(409, description = 'There is already a table called "' + name + '". Please pick a different name.')
+            abort(409, f'There is already a table called "{name}". Please pick a different name.')
 
         # Create the table
         cur.execute(
@@ -86,7 +85,7 @@ def makeTable():
         else:
             cur.execute('INSERT INTO tables (name) VALUES (%s);', (name,))
 
-    return 'Table "' + name + '" successfully created.'
+    return f'Table "{name}" successfully created.'
 
 
 # View existing table (must provide password)
@@ -137,7 +136,7 @@ def addRow():
             SQL('INSERT INTO {} DEFAULT VALUES;').format(Identifier(tablename))
         )
 
-    return 'Successfully added row to table "' + tablename + '".'
+    return f'Successfully added row to table "{tablename}".'
 
 
 # Delete given row from table
@@ -163,7 +162,7 @@ def deleteRow():
         print(rows)
 
         if int(rowid) not in rows:
-            abort(404, 'Row "' + rowid + '" doesn\'t exist in table "' + tablename + '".')
+            abort(404, f'Row "{rowid}" doesn\'t exist in table "{tablename}".')
 
         # Delete row from table
         cur.execute(
@@ -175,7 +174,7 @@ def deleteRow():
             (rowid,)
         )
 
-    return 'Successfully deleted row "' + rowid + '" from table "' + tablename + '".'
+    return f'Successfully deleted row "{rowid}" from table "{tablename}".'
 
 
 # Add column to existing table
@@ -190,7 +189,7 @@ def addCol():
     checkName(tablename, 'modify')
     checkRowCol(tablename, 'add', colname, 'column')
     # elif not datatype or datatype not in DATATYPES:
-        # abort(400, description = 'Please provide a valid datatype for the new column "' + colname + '" in table "' + tablename + '". Possible options are: ' + (', '.join(f'"{k}"' for k in DATATYPES)) + '.')
+        # abort(400, f'Please provide a valid datatype for the new column "{colname}" in table "{tablename}". Possible options are: {', '.join(f'"{k}"' for k in DATATYPES)}.')
 
     with dbWrap() as cur:
         # Check table and password
@@ -200,7 +199,7 @@ def addCol():
         cols = getCols(tablename, cur)
 
         if colname in cols:
-            abort(409, 'Column "' + colname + '" already exists in table "' + tablename + '".')
+            abort(409, f'Column "{colname}" already exists in table "{tablename}".')
 
         # Add new column to table
         cur.execute(
@@ -213,7 +212,7 @@ def addCol():
             )
         )
 
-    return 'Successfully added column "' + colname + '" to table "' + tablename + '".'
+    return f'Successfully added column "{colname}" to table "{tablename}".'
 
 
 # Delete given column from table
@@ -235,7 +234,7 @@ def deleteCol():
         cols = getCols(tablename, cur)
 
         if colname not in cols:
-            abort(404, 'Column "' + colname + '" doesn\'t exist in table "' + tablename + '".')
+            abort(404, f'Column "{colname}" doesn\'t exist in table "{tablename}".')
 
         # Delete column from table
         cur.execute(
@@ -247,7 +246,7 @@ def deleteCol():
             )
         )
 
-    return 'Successfully deleted column "' + colname + '" from table "' + tablename + '".'
+    return f'Successfully deleted column "{colname}" from table "{tablename}".'
 
 
 # Update cell value in table
@@ -272,7 +271,7 @@ def update():
         cols = getCols(tablename, cur)
 
         if colname not in cols:
-            abort(404, 'Column "' + colname + '" already exists in table "' + tablename + '".')
+            abort(404, f'Column "{colname}" already exists in table "{tablename}".')
 
         # Add new column to table
         cur.execute(
@@ -287,7 +286,7 @@ def update():
             (newval if newval else '', rowid)
         )
 
-    return 'Successfully updated row "' + rowid + '", column "' + colname + '" in table "' + tablename + '" with the value "' + newval + '".'
+    return f'Successfully updated row "{rowid}", column "{colname}" in table "{tablename}" with the value "{newval}".'
 
 
 # Delete existing table (must provide password)
@@ -310,7 +309,7 @@ def deleteTable():
         # Delete entry from master list
         cur.execute('DELETE FROM tables WHERE name = %s;', (name,))
 
-    return 'Table "' + name + '" successfully deleted.'
+    return f'Table "{name}" successfully deleted.'
 
 
 
@@ -384,14 +383,14 @@ def checkTablePwd(name, pwd, cur):
     names = cur.fetchone()
 
     if not names:
-        abort(404, description = 'There is no table called "' + name + '".')
+        abort(404, f'There is no table called "{name}".')
 
     # Check password
     cur.execute('SELECT pwd FROM tables WHERE name = %s;', (name,))
     storedPwd = cur.fetchone()[0]
 
     if storedPwd and pwd != storedPwd:
-        abort(403, description = 'Incorrect password for table "' + name + '".')
+        abort(403, f'Incorrect password for table "{name}".')
 
 
 # Wrapper method for database logic
@@ -399,7 +398,7 @@ def checkTablePwd(name, pwd, cur):
 @contextmanager
 def dbWrap():
     # Connect to DB
-    conn = psycopg2.connect(DATABASE_URL)   
+    conn = connect(DATABASE_URL)   
     cur = conn.cursor()
 
     try:
@@ -415,9 +414,9 @@ def dbWrap():
 # Check table name is not null or forbidden
 def checkName(name: str, action: str):
     if not name:
-        abort(400, description = 'Please provide a table name.')
+        abort(400, 'Please provide a table name.')
     elif name == 'tables':
-        abort(403, description = 'Not allowed to ' + action + ' table "tables".')
+        abort(403, f'Not allowed to {action} table "tables".')
 
 
 # Check row/column name is not null
@@ -425,4 +424,11 @@ def checkRowCol(tablename: str, action: str, rcname: str, rctype: str):
     if not rcname:
         ident = 'id' if rctype == 'row' else 'name'
         
-        abort(400, description = 'Please provide the ' + ident + ' of the ' + rctype + ' you would like to ' + action + ' in table "' + tablename + '".')
+        abort(400, f'Please provide the {ident} of the {rctype} you would like to {action} in table "{tablename}".')
+
+
+# Abort with plain text instead of HTML
+def abort(status_code, message):
+    response = make_response(message)
+    response.status_code = status_code
+    fabort(response)

@@ -274,7 +274,8 @@ async function makeReq(api, onOK = (data) => {
       if (400 <= st && st <= 499) {
         // Client error
         errMsg = await resp.text()
-        alert('Error: "' + errMsg + '"')
+        console.log(errMsg)
+        alert(errMsg)
       }
       else if (st >= 500) {
         // Server error
