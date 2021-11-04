@@ -38,5 +38,6 @@ def postReq(response):
     response.headers['Access-Control-Allow-Origin'] = request.origin
     response.headers['Access-Control-Allow-Headers'] = 'Authorization'
     response.headers['Access-Control-Allow-Methods'] = '*'
+    response.headers['Access-Control-Max-Age'] = 86400
 
     return response
