@@ -67,6 +67,10 @@ def viewTable():
     checkName(name, "view")
     pwd = request.headers.get('Authorization')      # sent as auth header
 
+    # Optional sort parameters
+    sortby = request.args.get('sortby') or 'id'
+    asc = request.args.get('asc') != 'false'
+
     with dbWrap() as cur:
         # Check table and password
         checkTablePwd(name, pwd, cur)
@@ -78,9 +82,13 @@ def viewTable():
         cur.execute(
             SQL(
             """SELECT *
-                FROM {}
-                ORDER BY id ASC;"""
-            ).format(Identifier(name))
+                FROM {name}
+                ORDER BY {col} {dir};"""
+            ).format(
+              name = Identifier(name),
+              col = SQL(sortby),
+              dir = SQL('ASC' if asc else 'DESC')
+            )
         )
         tableData = cur.fetchall()     # Returns list of tuples
 

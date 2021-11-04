@@ -2,6 +2,10 @@
 // Checks if LOCAL_SERVER is defined in server.js, otherwise default to external server
 SERVER = typeof LOCAL_SERVER === 'undefined' ? 'https://barrettj12-crud-app.herokuapp.com' : LOCAL_SERVER
 
+// Global variables - table sorting
+sortCol = 'id'
+ascending = true
+
 // Get page elements
 nameInput = document.getElementById('tablename')
 pwdInput = document.getElementById('tablepwd')
@@ -41,7 +45,12 @@ async function makeTable() {
 }
 
 // View table
-async function viewTable() {
+async function viewTable(colname = 'id', asc = true) {
+  // Set globals
+  sortCol = colname
+  ascending = asc
+
+  // Make request to API
   makeReq('/viewtable',
 
     // Code to run on response
@@ -51,7 +60,11 @@ async function viewTable() {
     }, {
       
     // Options
-    qparams: { name: nameInput.value },
+    qparams: {
+      name: nameInput.value,
+      sortby: colname,
+      asc: asc
+    },
     isJSON: true
   })
 }
@@ -135,13 +148,11 @@ async function deleteCol(colname) {
 
 // Update value
 async function update(row,col,value) {
-  console.log('Update value in row "' + row + '" and column "' + col + '" with value "' + value + '".')
-
   makeReq('/update',
 
     // Code to run on response
     (msg) => {
-      alert(msg)
+      console.log(msg)
     }, {
       
     // Options
@@ -157,7 +168,14 @@ async function update(row,col,value) {
 
 // Sort by column
 async function sortByCol(colname) {
-  alert('Sorting by column "' + colname + '"')
+  if (colname === sortCol) {
+    asc = !ascending
+  }
+  else {
+    asc = true
+  }
+
+  viewTable(colname, asc)
 }
 
 // Delete table
@@ -315,9 +333,15 @@ function formatTable(tableData, editable) {
       }
 
       sortBt = document.createElement('a')
-      sortBt.innerHTML = '⇅'
       sortBt.setAttribute('class', 'sort-button')
       sortBt.setAttribute("onclick", "sortByCol('" + hdText + "')")
+
+      // Set appearance of sort button
+      if (sortCol === hdText) {
+        sortBt.innerHTML = ascending ? '⇑' : '⇓'
+      } else {
+        sortBt.innerHTML = '⇕'
+      }
       colHeader.appendChild(sortBt)
     }
 
