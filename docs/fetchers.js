@@ -1,3 +1,13 @@
+/*  CRUD APP
+ *    https://github.com/barrettj12/crud-app
+ *  Author: Jordan Mitchell Barrett (@barrettj12)
+ *    https://github.com/barrettj12
+ *
+ *  /docs/fetchers.js
+ *  Methods to make requests / fetch data from API
+ */
+
+
 // Get server address
 // Checks if LOCAL_SERVER is defined in server.js, otherwise default to external server
 SERVER = typeof LOCAL_SERVER === 'undefined' ? 'https://barrettj12-crud-app.herokuapp.com' : LOCAL_SERVER

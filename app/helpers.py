@@ -3,7 +3,7 @@
 #   Author: Jordan Mitchell Barrett (@barrettj12)
 #     https://github.com/barrettj12
 #
-#   helpers.py
+#   /app/helpers.py
 #   Helper methods for APIs
 
 

@@ -3,7 +3,7 @@
 #   Author: Jordan Mitchell Barrett (@barrettj12)
 #     https://github.com/barrettj12
 #
-#   __init__.py
+#   /app/__init__.py
 #   Main file for app package
 
 

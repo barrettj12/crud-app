@@ -3,7 +3,7 @@
 #   Author: Jordan Mitchell Barrett (@barrettj12)
 #     https://github.com/barrettj12
 #
-#   admin.py
+#   /app/admin.py
 #   Admin APIs - should not be accessible in the final app
 
 

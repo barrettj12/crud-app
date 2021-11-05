@@ -3,7 +3,7 @@
 #   Author: Jordan Mitchell Barrett (@barrettj12)
 #     https://github.com/barrettj12
 #
-#   wsgi.py
+#   /wsgi.py
 #   Run app on WSGI server
 
 from app import app
