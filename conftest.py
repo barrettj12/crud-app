@@ -18,7 +18,7 @@ from app.helpers import initDB
 def client():
     # Import database address from /test/dbconfig.py
     try:
-        from dbconfig import DATABASE_URL
+        from dbconfig import DATABASE_URL # type: ignore
         print('Using database URL from /test/dbconfig.py')
     except ImportError as e:
         raise RuntimeError('No database URL has been provided for testing. To provide the database URL, create a file /test/dbconfig.py which defines a variable DATABASE_URL.') from e

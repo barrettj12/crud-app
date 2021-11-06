@@ -1,4 +1,6 @@
 __pycache__/
 dbconfig.py
+
+/.pytest_cache/
 /docs/server.js
 /env/
