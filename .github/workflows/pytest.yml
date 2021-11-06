@@ -21,7 +21,7 @@ jobs:
         with:
           python-version: '3.9.7'
       - name: Install dependencies from requirements.txt
-        run: pip install -r /path/to/requirements.txt
+        run: pip install -r requirements.txt
       - name: Install and run pytest
         run: |
           pip install pytest
