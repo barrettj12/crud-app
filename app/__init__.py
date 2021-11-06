@@ -18,19 +18,20 @@ ALLOWED_ORIGINS = {
 
 
 # Application factory
-def create_app(dbUrl = None):
+def create_app(dbUrl):
     app = Flask(__name__)
 
     # Configure database url
-    if (dbUrl):
-        app.config['DATABASE_URL'] = dbUrl
-    else:
-        # Try to import from db.py file
-        try:
-            from app.db import DATABASE_URL
-            app.config['DATABASE_URL'] = DATABASE_URL
-        except ImportError as e:
-            raise RuntimeError('No database URL has been provided to the application. You can provide the database URL as an argument to create_app(), or by defining a variable DATABASE_URL in a file /app/db.py.') from e
+    # if (dbUrl):
+    app.config['DATABASE_URL'] = dbUrl
+    # print(f'dbUrl is {dbUrl}')
+    # else:
+    #     # Try to import from db.py file
+    #     try:
+    #         from app.db import DATABASE_URL
+    #         app.config['DATABASE_URL'] = DATABASE_URL
+    #     except ImportError as e:
+    #         raise RuntimeError('No database URL has been provided to the application. You can provide the database URL as an argument to create_app(), or by defining a variable DATABASE_URL in a file /app/db.py.') from e
 
     # Import helpers
     from app.helpers import abort

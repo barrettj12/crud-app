@@ -9,7 +9,7 @@
 
 # Imports
 # from app import app
-from app.helpers import dbWrap
+from app.helpers import dbWrap, initDB
 from flask import Blueprint # current_app
 from flask.json import jsonify
 
@@ -20,28 +20,7 @@ admin = Blueprint('admin', __name__)
 # Reset all data in database
 @admin.route('/reset', methods = ['DELETE'])
 def reset():
-    with dbWrap() as cur:
-        # Delete all existing data
-        cur.execute(
-        """DROP SCHEMA public CASCADE;
-            CREATE SCHEMA public;
-            GRANT ALL ON SCHEMA public TO postgres;
-            GRANT ALL ON SCHEMA public TO public;
-            COMMENT ON SCHEMA public IS 'standard public schema';"""
-        )
-
-        # Create the master list 'tables'
-        cur.execute(
-        """CREATE TABLE tables (
-                id INT GENERATED ALWAYS AS IDENTITY,
-                name TEXT NOT NULL,
-                pwd TEXT
-            );"""
-        )
-
-        # Enter table in master list 'tables'
-        cur.execute("INSERT INTO tables (name) VALUES ('tables');")
-
+    initDB()
     return 'Reset successful.'
 
 
