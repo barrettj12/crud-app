@@ -21,7 +21,7 @@ jobs:
           postgresql user: test
           postgresql password: test
       - name: Write DB URL to file
-        run: echo "DATABASE_URL = 'postgres://test:test@localhost/test'" > /test/dbconfig.py
+        run: echo "DATABASE_URL = 'postgres://test:test@localhost/test'" > test/dbconfig.py
       - name: Install Python
         uses: actions/setup-python@v2.2.2
         with:
