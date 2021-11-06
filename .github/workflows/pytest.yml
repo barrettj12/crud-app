@@ -1,13 +1,7 @@
 name: Run pytest suite
 on:
   push:
-    paths:
-      - '**.py'
-      - 'pytest.yml'
   pull_request:
-    paths:
-      - '**.py'
-      - 'pytest.yml'
   workflow_dispatch:
 jobs:
   test:
@@ -18,16 +12,16 @@ jobs:
       - name: Set up PostgreSQL database locally
         uses: Harmon758/postgresql-action@v1.0.0
         with:
-          postgresql user: test
+          postgresql user: postgres
           postgresql password: test
       - name: Write DB URL to file
-        run: echo "DATABASE_URL = 'postgres://test:test@localhost/test'" > /test/dbconfig.py
+        run: echo "DATABASE_URL = 'postgres://postgres:test@localhost/postgres'" > test/dbconfig.py
       - name: Install Python
         uses: actions/setup-python@v2.2.2
         with:
           python-version: '3.9.7'
       - name: Install dependencies from requirements.txt
-        run: pip install -r /path/to/requirements.txt
+        run: pip install -r requirements.txt
       - name: Install and run pytest
         run: |
           pip install pytest
