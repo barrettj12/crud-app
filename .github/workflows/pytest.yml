@@ -1,13 +1,7 @@
 name: Run pytest suite
 on:
   push:
-    paths:
-      - '**.py'
-      - 'pytest.yml'
   pull_request:
-    paths:
-      - '**.py'
-      - 'pytest.yml'
   workflow_dispatch:
 jobs:
   test:
