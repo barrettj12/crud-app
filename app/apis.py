@@ -8,27 +8,30 @@
 
 
 # Imports
-from app import app
+# from app import app
 from app.helpers import abort, checkName, checkRowCol, checkTablePwd, dbWrap, getCols
-from flask import request
+from flask import Blueprint, request
 from flask.json import jsonify
 from psycopg2.sql import Identifier, SQL
 
+# Create blueprint to attach API methods to
+apis = Blueprint('apis', __name__)
+
 
 # Landing page
-@app.route('/', methods = ['GET'])
+@apis.route('/', methods = ['GET'])
 def landingPage():
     return "This is the backend API for crud-app. See https://github.com/barrettj12/crud-app"
 
 
 # API test interface
-@app.route('/test', methods = ['GET'])
+@apis.route('/test', methods = ['GET'])
 def testResponse():
     return 'This is a test'
 
 
 # Make new table
-@app.route('/maketable', methods=['POST'])
+@apis.route('/maketable', methods=['POST'])
 def makeTable():
     # Get provided parameters (in POST body)
     name = request.form.get('name')
@@ -61,7 +64,7 @@ def makeTable():
 
 
 # View existing table (must provide password)
-@app.route('/viewtable', methods = ['GET'])
+@apis.route('/viewtable', methods = ['GET'])
 def viewTable():
     name = request.args.get('name')     # sent in query string
     checkName(name, "view")
@@ -101,7 +104,7 @@ def viewTable():
 
 
 # Add (empty) row to existing table
-@app.route('/addrow', methods=['POST'])
+@apis.route('/addrow', methods=['POST'])
 def addRow():
     tablename = request.args.get('name')     # sent in query string
     checkName(tablename, "modify")
@@ -120,7 +123,7 @@ def addRow():
 
 
 # Delete given row from table
-@app.route('/deleterow', methods=['DELETE'])
+@apis.route('/deleterow', methods=['DELETE'])
 def deleteRow():
     tablename = request.args.get('name')     # sent in query string
     rowid = request.args.get('row')
@@ -158,7 +161,7 @@ def deleteRow():
 
 
 # Add column to existing table
-@app.route('/addcol', methods=['POST'])
+@apis.route('/addcol', methods=['POST'])
 def addCol():
     tablename = request.args.get('name')     # sent in query string
     colname = request.args.get('col')
@@ -196,7 +199,7 @@ def addCol():
 
 
 # Delete given column from table
-@app.route('/deletecol', methods=['DELETE'])
+@apis.route('/deletecol', methods=['DELETE'])
 def deleteCol():
     tablename = request.args.get('name')     # sent in query string
     colname = request.args.get('col')
@@ -230,7 +233,7 @@ def deleteCol():
 
 
 # Update cell value in table
-@app.route('/update', methods=['PUT'])
+@apis.route('/update', methods=['PUT'])
 def update():
     tablename = request.args.get('name')     # sent in query string
     rowid = request.args.get('row')
@@ -270,7 +273,7 @@ def update():
 
 
 # Delete existing table (must provide password)
-@app.route('/deletetable', methods = ['DELETE'])
+@apis.route('/deletetable', methods = ['DELETE'])
 def deleteTable():
     name = request.args.get('name')     # sent in query string
     pwd = request.headers.get('Authorization')      # sent as auth header

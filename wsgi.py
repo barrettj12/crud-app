@@ -6,7 +6,8 @@
 #   /wsgi.py
 #   Run app on WSGI server
 
-from app import app
+import app
+thisApp = app.create_app()
 
 if __name__ == "__main__":
-  app.run()
+  thisApp.run()

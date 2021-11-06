@@ -9,12 +9,12 @@
 
 # Imports
 from contextlib import contextmanager
-from flask import make_response, abort as fabort
-from psycopg2 import connect
-from os import environ
+from flask import abort as fabort, current_app, make_response
+import psycopg2
+# from os import environ
 
 # Constants
-DATABASE_URL = environ['DATABASE_URL']
+# DATABASE_URL = environ['DATABASE_URL']
 
 
 # Get column names for a given table
@@ -52,7 +52,7 @@ def checkTablePwd(name, pwd, cur):
 @contextmanager
 def dbWrap():
     # Connect to DB
-    conn = connect(DATABASE_URL)   
+    conn = psycopg2.connect(current_app.config['DATABASE_URL'])
     cur = conn.cursor()
 
     try:

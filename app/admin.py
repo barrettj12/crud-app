@@ -8,13 +8,17 @@
 
 
 # Imports
-from app import app
+# from app import app
 from app.helpers import dbWrap
+from flask import Blueprint # current_app
 from flask.json import jsonify
+
+# Create blueprint to attach API methods to
+admin = Blueprint('admin', __name__)
 
 
 # Reset all data in database
-@app.route('/reset', methods = ['DELETE'])
+@admin.route('/reset', methods = ['DELETE'])
 def reset():
     with dbWrap() as cur:
         # Delete all existing data
@@ -42,7 +46,7 @@ def reset():
 
 
 # Get list of tables
-@app.route('/tables', methods = ['GET'])
+@admin.route('/tables', methods = ['GET'])
 def getTables():
     with dbWrap() as cur:
         cur.execute('SELECT * FROM tables ORDER BY id ASC;')
@@ -54,4 +58,3 @@ def getTables():
         fields = ["id", "name", "pwd"],
         data = tables
     )
-
