@@ -24,7 +24,7 @@ except ImportError:
 print(f'Database URL is {DATABASE_URL}')
 
 # Create app
-thisApp = app.create_app(DATABASE_URL)
+app = app.create_app(DATABASE_URL)
 
 if __name__ == "__main__":
-    thisApp.run()
+    app.run()
