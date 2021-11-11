@@ -9,7 +9,7 @@
 
 from app.helpers import dbWrap, getCols
 
-
+# Test that the database was initialised correctly
 def test_db_init(client):
     with dbWrap() as cur:
         # Check that only one table 'tables' has been created
