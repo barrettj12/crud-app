@@ -78,6 +78,7 @@ def checkTablePwd(name, pwd, cur):
 
 
 # Check table name is not null or forbidden
+#   action is a verb for the error message
 def checkName(name: str, action: str):
     if not name:
         abort(400, 'Please provide a table name.')
@@ -86,6 +87,7 @@ def checkName(name: str, action: str):
 
 
 # Check row/column name is not null
+#   action, rcype are for the error message
 def checkRowCol(tablename: str, action: str, rcname: str, rctype: str):
     if not rcname:
         ident = 'id' if rctype == 'row' else 'name'
